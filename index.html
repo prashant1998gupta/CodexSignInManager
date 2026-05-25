@@ -537,6 +537,20 @@
       background: var(--accent-green-dim);
       color: var(--accent-green);
     }
+    /* Available usage info (green variant) */
+    .card-reset-info.available-info {
+      border-color: rgba(0, 230, 138, 0.15);
+      background: rgba(0, 230, 138, 0.04);
+    }
+    .card-reset-info.available-info .reset-usage-text {
+      color: var(--accent-green);
+    }
+    .card-reset-info.available-info .reset-progress-bar {
+      background: var(--accent-green);
+    }
+    .card-reset-info.available-info .reset-pct {
+      color: var(--accent-green);
+    }
 
     .card-notes {
       font-size: 0.82rem;
@@ -936,8 +950,18 @@
             <input type="number" id="account-reset-days" value="7" min="1" max="30">
           </div>
         </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="account-usage-pct">Usage Remaining % (from Codex)</label>
+            <input type="number" id="account-usage-pct" value="100" min="0" max="100" placeholder="e.g. 76">
+          </div>
+          <div class="form-group">
+            <label for="account-next-reset">Next Reset Date</label>
+            <input type="datetime-local" id="account-next-reset">
+          </div>
+        </div>
         <div class="form-group" id="reset-date-group" style="display:none;">
-          <label for="account-reset-date">Next Reset Date (from Codex UI)</label>
+          <label for="account-reset-date">Exhausted Reset Date (from Codex UI)</label>
           <input type="datetime-local" id="account-reset-date">
           <div style="font-size:0.75rem;color:var(--text-muted);margin-top:5px;">Copy the reset date shown in Codex. Leave empty to use current time + reset period.</div>
         </div>
@@ -1201,23 +1225,46 @@
         const resetDate = resetTimeMs ? new Date(resetTimeMs) : null;
         const isSoon = ds === 'resetting';
 
-        const countdownHtml = acc.status === 'exhausted' && remaining !== null ? `
-          <div class="card-reset-info ${isSoon ? 'resetting-soon' : ''}" data-card-reset="${acc.id}">
-            <div class="reset-usage-row">
-              <span class="reset-usage-text">0% usage remaining</span>
-              <span class="reset-countdown" data-reset-timer="${acc.id}">${formatCountdown(remaining)}</span>
-            </div>
-            <div class="reset-progress-row">
-              <div class="reset-progress-track">
-                <div class="reset-progress-bar ${isSoon ? 'recovering' : ''}" style="width: ${progressPct}%"></div>
+        // Build info block for BOTH statuses
+        let infoBlockHtml = '';
+        if (acc.status === 'exhausted' && remaining !== null) {
+          infoBlockHtml = `
+            <div class="card-reset-info ${isSoon ? 'resetting-soon' : ''}" data-card-reset="${acc.id}">
+              <div class="reset-usage-row">
+                <span class="reset-usage-text">0% usage remaining</span>
+                <span class="reset-countdown" data-reset-timer="${acc.id}">${formatCountdown(remaining)}</span>
               </div>
-              <span class="reset-pct" data-reset-pct="${acc.id}">${progressPct}%</span>
+              <div class="reset-progress-row">
+                <div class="reset-progress-track">
+                  <div class="reset-progress-bar ${isSoon ? 'recovering' : ''}" style="width: ${progressPct}%"></div>
+                </div>
+                <span class="reset-pct" data-reset-pct="${acc.id}">${progressPct}%</span>
+              </div>
+              <div class="reset-meta-text" data-reset-meta="${acc.id}">
+                <span>${resetDays === 7 ? 'Weekly' : 'Every ' + resetDays + 'd'}</span><span class="reset-separator">·</span><span data-reset-pct-meta="${acc.id}">${progressPct}%</span><span class="reset-separator">·</span><span class="reset-date">${resetDate ? formatResetDateShort(resetDate) : '—'}</span>
+              </div>
             </div>
-            <div class="reset-meta-text" data-reset-meta="${acc.id}">
-              <span>${resetDays === 7 ? 'Weekly' : 'Every ' + resetDays + 'd'}</span><span class="reset-separator">·</span><span data-reset-pct-meta="${acc.id}">${progressPct}%</span><span class="reset-separator">·</span><span class="reset-date">${resetDate ? formatResetDateShort(resetDate) : '—'}</span>
+          `;
+        } else if (acc.status === 'available') {
+          const usagePct = acc.usagePercent !== undefined ? acc.usagePercent : 100;
+          const availResetDate = acc.nextResetDate ? new Date(acc.nextResetDate) : null;
+          infoBlockHtml = `
+            <div class="card-reset-info available-info">
+              <div class="reset-usage-row">
+                <span class="reset-usage-text">${usagePct}% usage remaining</span>
+              </div>
+              <div class="reset-progress-row">
+                <div class="reset-progress-track">
+                  <div class="reset-progress-bar" style="width: ${usagePct}%"></div>
+                </div>
+                <span class="reset-pct">${usagePct}%</span>
+              </div>
+              <div class="reset-meta-text">
+                <span>${resetDays === 7 ? 'Weekly' : 'Every ' + resetDays + 'd'}</span><span class="reset-separator">·</span><span>${usagePct}%</span><span class="reset-separator">·</span><span class="reset-date">${availResetDate ? formatResetDateShort(availResetDate) : '—'}</span>
+              </div>
             </div>
-          </div>
-        ` : '';
+          `;
+        }
 
         const toggleLabel = acc.status === 'available' ? '🚫 Mark Exhausted' : '✅ Mark Available';
         const toggleClass = acc.status === 'available' ? 'btn-danger' : '';
@@ -1234,7 +1281,7 @@
                 ${ds === 'available' ? 'Available' : ds === 'resetting' ? 'Resetting' : 'Exhausted'}
               </span>
             </div>
-            ${countdownHtml}
+            ${infoBlockHtml}
             ${acc.notes ? `<div class="card-notes">${escapeHtml(acc.notes)}</div>` : ''}
             <div class="card-actions">
               <button class="btn btn-sm ${toggleClass}" onclick="toggleStatus('${acc.id}')">
@@ -1385,6 +1432,8 @@
       document.getElementById('form-account').reset();
       document.getElementById('account-id').value = '';
       document.getElementById('account-reset-days').value = '7';
+      document.getElementById('account-usage-pct').value = '100';
+      document.getElementById('account-next-reset').value = '';
       document.getElementById('account-reset-date').value = '';
       document.getElementById('reset-date-group').style.display = 'none';
       openModal('modal-account');
@@ -1402,7 +1451,10 @@
       document.getElementById('account-status').value = acc.status;
       document.getElementById('account-reset-days').value = acc.resetDays || 7;
       document.getElementById('account-notes').value = acc.notes || '';
-      // Show/populate reset date field
+      // Usage percent and next reset date
+      document.getElementById('account-usage-pct').value = acc.usagePercent !== undefined ? acc.usagePercent : 100;
+      document.getElementById('account-next-reset').value = acc.nextResetDate ? toLocalDatetimeString(new Date(acc.nextResetDate)) : '';
+      // Show/populate exhausted reset date field
       if (acc.status === 'exhausted') {
         document.getElementById('reset-date-group').style.display = 'block';
         if (acc.resetAt) {
@@ -1430,6 +1482,8 @@
       const resetDays = parseInt(document.getElementById('account-reset-days').value) || 7;
       const notes = document.getElementById('account-notes').value.trim();
       const resetDateVal = document.getElementById('account-reset-date').value;
+      const usagePercent = parseInt(document.getElementById('account-usage-pct').value);
+      const nextResetVal = document.getElementById('account-next-reset').value;
 
       if (!email) return;
 
@@ -1443,6 +1497,8 @@
         acc.status = status;
         acc.resetDays = resetDays;
         acc.notes = notes;
+        acc.usagePercent = isNaN(usagePercent) ? 100 : Math.max(0, Math.min(100, usagePercent));
+        acc.nextResetDate = nextResetVal ? new Date(nextResetVal).toISOString() : null;
 
         if (status === 'exhausted') {
           if (resetDateVal) {
@@ -1484,6 +1540,8 @@
           resetAt,
           resetDays,
           notes,
+          usagePercent: isNaN(usagePercent) ? 100 : Math.max(0, Math.min(100, usagePercent)),
+          nextResetDate: nextResetVal ? new Date(nextResetVal).toISOString() : null,
           usageLog: [{
             timestamp: new Date().toISOString(),
             action: 'created',
