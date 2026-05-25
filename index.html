@@ -1,0 +1,1705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Codex Account Manager — Track and manage multiple OpenAI Codex free tier accounts, monitor usage limits, and auto-reset timers.">
+  <title>Codex Sign Manager — Account Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* ===== CSS CUSTOM PROPERTIES ===== */
+    :root {
+      --bg-primary: #0a0a1a;
+      --bg-secondary: #12122a;
+      --bg-card: rgba(20, 20, 50, 0.6);
+      --bg-card-hover: rgba(30, 30, 70, 0.7);
+      --bg-modal: rgba(15, 15, 40, 0.95);
+      --bg-input: rgba(255, 255, 255, 0.06);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-input: rgba(255, 255, 255, 0.12);
+      --text-primary: #e8e8f0;
+      --text-secondary: #8888aa;
+      --text-muted: #5a5a7a;
+      --accent-green: #00e68a;
+      --accent-green-dim: rgba(0, 230, 138, 0.15);
+      --accent-green-glow: rgba(0, 230, 138, 0.3);
+      --accent-red: #ff4d6a;
+      --accent-red-dim: rgba(255, 77, 106, 0.15);
+      --accent-red-glow: rgba(255, 77, 106, 0.3);
+      --accent-amber: #ffb347;
+      --accent-amber-dim: rgba(255, 179, 71, 0.15);
+      --accent-amber-glow: rgba(255, 179, 71, 0.3);
+      --accent-blue: #4d94ff;
+      --accent-blue-dim: rgba(77, 148, 255, 0.15);
+      --accent-purple: #a855f7;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-xl: 24px;
+      --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.3);
+      --shadow-glow-green: 0 0 20px var(--accent-green-glow), 0 0 60px rgba(0, 230, 138, 0.1);
+      --shadow-glow-red: 0 0 20px var(--accent-red-glow), 0 0 60px rgba(255, 77, 106, 0.1);
+      --shadow-glow-amber: 0 0 20px var(--accent-amber-glow), 0 0 60px rgba(255, 179, 71, 0.1);
+      --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-med: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* ===== RESET & BASE ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* ===== ANIMATED BACKGROUND ===== */
+    .bg-animation {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    .bg-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.4;
+      animation: orbFloat 20s infinite ease-in-out;
+    }
+    .bg-orb:nth-child(1) {
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(0, 230, 138, 0.3), transparent);
+      top: -100px; left: -100px;
+      animation-duration: 25s;
+    }
+    .bg-orb:nth-child(2) {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(168, 85, 247, 0.25), transparent);
+      top: 50%; right: -150px;
+      animation-duration: 30s;
+      animation-delay: -5s;
+    }
+    .bg-orb:nth-child(3) {
+      width: 350px; height: 350px;
+      background: radial-gradient(circle, rgba(77, 148, 255, 0.2), transparent);
+      bottom: -50px; left: 30%;
+      animation-duration: 22s;
+      animation-delay: -10s;
+    }
+    @keyframes orbFloat {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      25% { transform: translate(60px, -40px) scale(1.1); }
+      50% { transform: translate(-30px, 60px) scale(0.95); }
+      75% { transform: translate(40px, 30px) scale(1.05); }
+    }
+
+    /* ===== LAYOUT ===== */
+    .app-container {
+      position: relative;
+      z-index: 1;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px 28px 60px;
+    }
+
+    /* ===== HEADER ===== */
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .app-title {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .app-title .logo-icon {
+      width: 44px; height: 44px;
+      background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 4px 20px rgba(0, 230, 138, 0.25);
+    }
+    .app-title h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--text-primary), var(--accent-green));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .app-title .subtitle {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      font-weight: 400;
+      margin-top: 2px;
+    }
+    .header-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    /* ===== BUTTONS ===== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 10px 18px;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      white-space: nowrap;
+    }
+    .btn:hover {
+      background: var(--bg-card-hover);
+      border-color: rgba(255,255,255,0.15);
+      transform: translateY(-1px);
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-green), #00c974);
+      border: none;
+      color: #0a0a1a;
+      font-weight: 600;
+      box-shadow: 0 4px 15px rgba(0, 230, 138, 0.25);
+    }
+    .btn-primary:hover {
+      box-shadow: 0 6px 25px rgba(0, 230, 138, 0.35);
+      transform: translateY(-2px);
+    }
+    .btn-danger {
+      background: rgba(255, 77, 106, 0.1);
+      border-color: rgba(255, 77, 106, 0.3);
+      color: var(--accent-red);
+    }
+    .btn-danger:hover {
+      background: rgba(255, 77, 106, 0.2);
+    }
+    .btn-sm {
+      padding: 7px 13px;
+      font-size: 0.8rem;
+      border-radius: var(--radius-sm);
+    }
+    .btn .icon { font-size: 1.1em; }
+
+    /* ===== STATS BAR ===== */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      transition: all var(--transition-fast);
+    }
+    .stat-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(255,255,255,0.12);
+    }
+    .stat-icon {
+      width: 44px; height: 44px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      flex-shrink: 0;
+    }
+    .stat-icon.total { background: var(--accent-blue-dim); }
+    .stat-icon.available { background: var(--accent-green-dim); }
+    .stat-icon.exhausted { background: var(--accent-red-dim); }
+    .stat-icon.resetting { background: var(--accent-amber-dim); }
+    .stat-value {
+      font-size: 1.6rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* ===== SEARCH & FILTER BAR ===== */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .search-box {
+      flex: 1;
+      min-width: 220px;
+      position: relative;
+    }
+    .search-box .search-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 1rem;
+      pointer-events: none;
+    }
+    .search-box input {
+      width: 100%;
+      padding: 11px 16px 11px 42px;
+      background: var(--bg-input);
+      border: 1px solid var(--border-input);
+      border-radius: var(--radius-md);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.88rem;
+      transition: all var(--transition-fast);
+      outline: none;
+    }
+    .search-box input::placeholder { color: var(--text-muted); }
+    .search-box input:focus {
+      border-color: var(--accent-green);
+      box-shadow: 0 0 0 3px rgba(0, 230, 138, 0.1);
+    }
+    .filter-chips {
+      display: flex;
+      gap: 8px;
+    }
+    .chip {
+      padding: 8px 16px;
+      border-radius: 100px;
+      border: 1px solid var(--border-subtle);
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+    .chip:hover { color: var(--text-primary); border-color: rgba(255,255,255,0.2); }
+    .chip.active {
+      background: var(--accent-green-dim);
+      border-color: var(--accent-green);
+      color: var(--accent-green);
+    }
+    .chip.active[data-filter="exhausted"] {
+      background: var(--accent-red-dim);
+      border-color: var(--accent-red);
+      color: var(--accent-red);
+    }
+    .chip.active[data-filter="resetting"] {
+      background: var(--accent-amber-dim);
+      border-color: var(--accent-amber);
+      color: var(--accent-amber);
+    }
+
+    /* ===== ACCOUNT CARDS GRID ===== */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 18px;
+    }
+
+    /* ===== SINGLE ACCOUNT CARD ===== */
+    .account-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 22px 24px;
+      position: relative;
+      overflow: hidden;
+      transition: all var(--transition-med);
+      animation: cardIn 0.4s ease-out both;
+    }
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(20px) scale(0.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .account-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(255,255,255,0.15);
+    }
+    .account-card.status-available {
+      border-color: rgba(0, 230, 138, 0.2);
+      box-shadow: var(--shadow-glow-green);
+    }
+    .account-card.status-available:hover {
+      border-color: rgba(0, 230, 138, 0.4);
+    }
+    .account-card.status-exhausted {
+      border-color: rgba(255, 77, 106, 0.2);
+      box-shadow: var(--shadow-glow-red);
+    }
+    .account-card.status-exhausted:hover {
+      border-color: rgba(255, 77, 106, 0.4);
+    }
+    .account-card.status-resetting {
+      border-color: rgba(255, 179, 71, 0.25);
+      box-shadow: var(--shadow-glow-amber);
+      animation: cardIn 0.4s ease-out both, amberPulse 2.5s infinite ease-in-out;
+    }
+    @keyframes amberPulse {
+      0%, 100% { box-shadow: 0 0 20px rgba(255, 179, 71, 0.2), 0 0 40px rgba(255, 179, 71, 0.05); }
+      50% { box-shadow: 0 0 30px rgba(255, 179, 71, 0.35), 0 0 60px rgba(255, 179, 71, 0.12); }
+    }
+
+    /* Card glow line at top */
+    .account-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 20px; right: 20px;
+      height: 2px;
+      border-radius: 2px;
+      transition: all var(--transition-med);
+    }
+    .account-card.status-available::before {
+      background: linear-gradient(90deg, transparent, var(--accent-green), transparent);
+    }
+    .account-card.status-exhausted::before {
+      background: linear-gradient(90deg, transparent, var(--accent-red), transparent);
+    }
+    .account-card.status-resetting::before {
+      background: linear-gradient(90deg, transparent, var(--accent-amber), transparent);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .card-identity {
+      flex: 1;
+      min-width: 0;
+    }
+    .card-label {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .card-email {
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .card-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 100px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      flex-shrink: 0;
+      margin-left: 12px;
+    }
+    .card-status-badge.available {
+      background: var(--accent-green-dim);
+      color: var(--accent-green);
+    }
+    .card-status-badge.exhausted {
+      background: var(--accent-red-dim);
+      color: var(--accent-red);
+    }
+    .card-status-badge.resetting {
+      background: var(--accent-amber-dim);
+      color: var(--accent-amber);
+    }
+    .status-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .status-dot.available { background: var(--accent-green); box-shadow: 0 0 6px var(--accent-green); }
+    .status-dot.exhausted { background: var(--accent-red); box-shadow: 0 0 6px var(--accent-red); }
+    .status-dot.resetting { background: var(--accent-amber); box-shadow: 0 0 6px var(--accent-amber); }
+
+    /* Reset Info Block (Codex-style) */
+    .card-reset-info {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      margin-bottom: 14px;
+    }
+    .reset-usage-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .reset-usage-text {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .reset-countdown {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--accent-amber);
+      font-variant-numeric: tabular-nums;
+      background: var(--accent-amber-dim);
+      padding: 3px 9px;
+      border-radius: 100px;
+    }
+    .reset-progress-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .reset-progress-track {
+      flex: 1;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .reset-progress-bar {
+      height: 100%;
+      border-radius: 3px;
+      background: var(--accent-red);
+      transition: width 1s linear;
+      min-width: 0%;
+    }
+    .reset-progress-bar.recovering {
+      background: linear-gradient(90deg, var(--accent-amber), var(--accent-green));
+    }
+    .reset-pct {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      min-width: 32px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .reset-meta-text {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 2px;
+    }
+    .reset-meta-text .reset-separator {
+      margin: 0 5px;
+      color: var(--text-muted);
+    }
+    .reset-meta-text .reset-date {
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+    .card-reset-info.resetting-soon {
+      border-color: rgba(255, 179, 71, 0.2);
+      background: rgba(255, 179, 71, 0.05);
+    }
+    .card-reset-info.resetting-soon .reset-countdown {
+      background: var(--accent-green-dim);
+      color: var(--accent-green);
+    }
+
+    .card-notes {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .card-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding-top: 14px;
+      border-top: 1px solid var(--border-subtle);
+    }
+    .card-actions .btn-sm { flex: 1; justify-content: center; }
+
+    /* ===== EMPTY STATE ===== */
+    .empty-state {
+      text-align: center;
+      padding: 80px 20px;
+      animation: fadeIn 0.6s ease-out;
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .empty-icon {
+      font-size: 4rem;
+      margin-bottom: 20px;
+      opacity: 0.5;
+    }
+    .empty-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+    .empty-desc {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      margin-bottom: 24px;
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+      line-height: 1.6;
+    }
+
+    /* ===== MODALS ===== */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--transition-fast);
+      padding: 20px;
+    }
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .modal {
+      background: var(--bg-modal);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
+      padding: 32px;
+      width: 100%;
+      max-width: 520px;
+      max-height: 85vh;
+      overflow-y: auto;
+      transform: scale(0.95) translateY(10px);
+      transition: transform var(--transition-med);
+      box-shadow: 0 25px 60px rgba(0,0,0,0.4);
+    }
+    .modal-overlay.active .modal {
+      transform: scale(1) translateY(0);
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .modal-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+    .modal-close {
+      width: 36px; height: 36px;
+      border: none;
+      background: var(--bg-input);
+      border-radius: 50%;
+      color: var(--text-secondary);
+      font-size: 1.2rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all var(--transition-fast);
+    }
+    .modal-close:hover { background: rgba(255,255,255,0.1); color: var(--text-primary); }
+
+    /* Form styles */
+    .form-group {
+      margin-bottom: 18px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 7px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      padding: 11px 14px;
+      background: var(--bg-input);
+      border: 1px solid var(--border-input);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.9rem;
+      transition: all var(--transition-fast);
+      outline: none;
+    }
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+      border-color: var(--accent-green);
+      box-shadow: 0 0 0 3px rgba(0, 230, 138, 0.1);
+    }
+    .form-group textarea { resize: vertical; min-height: 70px; }
+    .form-group select { cursor: pointer; }
+    .form-group select option { background: var(--bg-secondary); }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .form-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 24px;
+    }
+
+    /* ===== USAGE LOG MODAL ===== */
+    .log-list {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .log-entry {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 0.85rem;
+    }
+    .log-entry:last-child { border-bottom: none; }
+    .log-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      margin-top: 4px;
+      flex-shrink: 0;
+    }
+    .log-dot.exhausted { background: var(--accent-red); }
+    .log-dot.available { background: var(--accent-green); }
+    .log-dot.created { background: var(--accent-blue); }
+    .log-time {
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+    .log-action {
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+    .log-note {
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      margin-top: 2px;
+    }
+    .log-empty {
+      text-align: center;
+      color: var(--text-muted);
+      padding: 30px 0;
+    }
+
+    /* ===== CONFIRM DIALOG ===== */
+    .confirm-text {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+    .confirm-email {
+      color: var(--accent-red);
+      font-weight: 600;
+    }
+
+    /* ===== TOAST ===== */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .toast {
+      background: var(--bg-modal);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.88rem;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+      animation: toastIn 0.4s ease-out;
+      min-width: 280px;
+    }
+    .toast.success { border-left: 3px solid var(--accent-green); }
+    .toast.error { border-left: 3px solid var(--accent-red); }
+    .toast.info { border-left: 3px solid var(--accent-blue); }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateX(40px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes toastOut {
+      to { opacity: 0; transform: translateX(40px); }
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 768px) {
+      .app-container { padding: 16px 14px 40px; }
+      .app-header { flex-direction: column; align-items: flex-start; }
+      .header-actions { width: 100%; }
+      .header-actions .btn { flex: 1; justify-content: center; }
+      .cards-grid { grid-template-columns: 1fr; }
+      .stats-bar { grid-template-columns: repeat(2, 1fr); }
+      .toolbar { flex-direction: column; }
+      .search-box { min-width: 100%; }
+      .filter-chips { width: 100%; overflow-x: auto; }
+      .form-row { grid-template-columns: 1fr; }
+      .modal { padding: 24px 20px; margin: 10px; }
+    }
+    @media (max-width: 480px) {
+      .stats-bar { grid-template-columns: 1fr 1fr; }
+      .app-title h1 { font-size: 1.3rem; }
+    }
+
+    /* ===== SCROLLBAR ===== */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+    /* Hidden file input */
+    .hidden-input { display: none; }
+  </style>
+</head>
+<body>
+
+  <!-- Animated Background -->
+  <div class="bg-animation">
+    <div class="bg-orb"></div>
+    <div class="bg-orb"></div>
+    <div class="bg-orb"></div>
+  </div>
+
+  <div class="app-container">
+
+    <!-- Header -->
+    <header class="app-header">
+      <div class="app-title">
+        <div class="logo-icon">⚡</div>
+        <div>
+          <h1>Codex Sign Manager</h1>
+          <div class="subtitle">Track & manage your OpenAI Codex accounts</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn" id="btn-import" title="Import accounts from JSON">
+          <span class="icon">📥</span> Import
+        </button>
+        <button class="btn" id="btn-export" title="Export accounts to JSON">
+          <span class="icon">📤</span> Export
+        </button>
+        <button class="btn btn-primary" id="btn-add-account">
+          <span class="icon">＋</span> Add Account
+        </button>
+      </div>
+    </header>
+
+    <!-- Stats Bar -->
+    <div class="stats-bar" id="stats-bar">
+      <div class="stat-card">
+        <div class="stat-icon total">📊</div>
+        <div>
+          <div class="stat-value" id="stat-total">0</div>
+          <div class="stat-label">Total</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon available">✅</div>
+        <div>
+          <div class="stat-value" id="stat-available">0</div>
+          <div class="stat-label">Available</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon exhausted">🚫</div>
+        <div>
+          <div class="stat-value" id="stat-exhausted">0</div>
+          <div class="stat-label">Exhausted</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon resetting">⏳</div>
+        <div>
+          <div class="stat-value" id="stat-resetting">0</div>
+          <div class="stat-label">Resets &lt; 24h</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toolbar: Search & Filter -->
+    <div class="toolbar">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="search-input" placeholder="Search by email, label, or notes..." autocomplete="off">
+      </div>
+      <div class="filter-chips">
+        <button class="chip active" data-filter="all">All</button>
+        <button class="chip" data-filter="available">Available</button>
+        <button class="chip" data-filter="exhausted">Exhausted</button>
+        <button class="chip" data-filter="resetting">Resetting Soon</button>
+      </div>
+    </div>
+
+    <!-- Cards Grid -->
+    <div class="cards-grid" id="cards-grid"></div>
+
+    <!-- Empty State -->
+    <div class="empty-state" id="empty-state" style="display:none;">
+      <div class="empty-icon">🗂️</div>
+      <div class="empty-title">No accounts yet</div>
+      <div class="empty-desc">Add your Codex accounts to start tracking their usage limits and never lose track again.</div>
+      <button class="btn btn-primary" onclick="openAddModal()">
+        <span class="icon">＋</span> Add Your First Account
+      </button>
+    </div>
+  </div>
+
+  <!-- Add/Edit Account Modal -->
+  <div class="modal-overlay" id="modal-account">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title" id="modal-account-title">Add Account</h2>
+        <button class="modal-close" onclick="closeModal('modal-account')">✕</button>
+      </div>
+      <form id="form-account" onsubmit="handleAccountSubmit(event)">
+        <input type="hidden" id="account-id">
+        <div class="form-group">
+          <label for="account-email">Email Address *</label>
+          <input type="email" id="account-email" required placeholder="your-codex-account@gmail.com">
+        </div>
+        <div class="form-group">
+          <label for="account-label">Label / Nickname</label>
+          <input type="text" id="account-label" placeholder="e.g. Work Account, Personal #2">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="account-status">Current Status</label>
+            <select id="account-status" onchange="toggleResetDateField()">
+              <option value="available">✅ Available</option>
+              <option value="exhausted">🚫 Exhausted</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="account-reset-days">Reset Period (days)</label>
+            <input type="number" id="account-reset-days" value="7" min="1" max="30">
+          </div>
+        </div>
+        <div class="form-group" id="reset-date-group" style="display:none;">
+          <label for="account-reset-date">Next Reset Date (from Codex UI)</label>
+          <input type="datetime-local" id="account-reset-date">
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:5px;">Copy the reset date shown in Codex. Leave empty to use current time + reset period.</div>
+        </div>
+        <div class="form-group">
+          <label for="account-notes">Notes</label>
+          <textarea id="account-notes" placeholder="Optional notes about this account..."></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn" onclick="closeModal('modal-account')">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-account">Save Account</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Usage Log Modal -->
+  <div class="modal-overlay" id="modal-log">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title" id="modal-log-title">Usage Log</h2>
+        <button class="modal-close" onclick="closeModal('modal-log')">✕</button>
+      </div>
+      <div class="log-list" id="log-list"></div>
+      <div class="form-actions" style="margin-top:16px;">
+        <button class="btn btn-danger btn-sm" id="btn-clear-log" onclick="clearCurrentLog()">Clear Log</button>
+        <button class="btn" onclick="closeModal('modal-log')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Delete Modal -->
+  <div class="modal-overlay" id="modal-confirm">
+    <div class="modal" style="max-width:420px;">
+      <div class="modal-header">
+        <h2 class="modal-title">⚠️ Delete Account</h2>
+        <button class="modal-close" onclick="closeModal('modal-confirm')">✕</button>
+      </div>
+      <div class="confirm-text" id="confirm-text"></div>
+      <div class="form-actions">
+        <button class="btn" onclick="closeModal('modal-confirm')">Cancel</button>
+        <button class="btn btn-danger" id="btn-confirm-delete">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mark Exhausted Modal -->
+  <div class="modal-overlay" id="modal-exhaust">
+    <div class="modal" style="max-width:460px;">
+      <div class="modal-header">
+        <h2 class="modal-title">🚫 Mark as Exhausted</h2>
+        <button class="modal-close" onclick="closeModal('modal-exhaust')">✕</button>
+      </div>
+      <div class="confirm-text" id="exhaust-account-info"></div>
+      <div class="form-group">
+        <label for="exhaust-reset-date">Next Reset Date (from Codex UI)</label>
+        <input type="datetime-local" id="exhaust-reset-date">
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:5px;line-height:1.5;">Enter the exact reset date shown in Codex (e.g. "Next reset is on May 27 at 3:48 PM").<br>Leave empty to default to now + 7 days.</div>
+      </div>
+      <div class="form-actions">
+        <button class="btn" onclick="closeModal('modal-exhaust')">Cancel</button>
+        <button class="btn btn-danger" id="btn-confirm-exhaust">Mark Exhausted</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden file input for import -->
+  <input type="file" id="file-import" class="hidden-input" accept=".json">
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script>
+    // ===== DATA LAYER =====
+    const STORAGE_KEY = 'codex_accounts';
+    let accounts = [];
+    let currentFilter = 'all';
+    let currentSearch = '';
+    let editingLogAccountId = null;
+    let timerInterval = null;
+
+    function generateId() {
+      return 'acc_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 8);
+    }
+
+    function loadAccounts() {
+      try {
+        const data = localStorage.getItem(STORAGE_KEY);
+        accounts = data ? JSON.parse(data) : [];
+      } catch (e) {
+        accounts = [];
+      }
+    }
+
+    function saveAccounts() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts));
+    }
+
+    // ===== AUTO RECOVERY CHECK =====
+    function getAccountResetTime(acc) {
+      // Use explicit resetAt if set, otherwise calculate from limitExhaustedAt + resetDays
+      if (acc.resetAt) return new Date(acc.resetAt).getTime();
+      if (acc.limitExhaustedAt) {
+        const resetMs = (acc.resetDays || 7) * 24 * 60 * 60 * 1000;
+        return new Date(acc.limitExhaustedAt).getTime() + resetMs;
+      }
+      return null;
+    }
+
+    function checkAutoRecovery() {
+      const now = Date.now();
+      let changed = false;
+      accounts.forEach(acc => {
+        if (acc.status === 'exhausted') {
+          const resetTime = getAccountResetTime(acc);
+          if (resetTime && now >= resetTime) {
+            acc.status = 'available';
+            acc.limitExhaustedAt = null;
+            acc.resetAt = null;
+            acc.usageLog.push({
+              timestamp: new Date().toISOString(),
+              action: 'available',
+              note: 'Auto-reset: limit period expired'
+            });
+            changed = true;
+          }
+        }
+      });
+      if (changed) {
+        saveAccounts();
+        renderAll();
+      }
+    }
+
+    // ===== COMPUTED HELPERS =====
+    function getResetTimeRemaining(acc) {
+      if (acc.status !== 'exhausted') return null;
+      const resetTime = getAccountResetTime(acc);
+      if (!resetTime) return null;
+      const remaining = resetTime - Date.now();
+      return remaining > 0 ? remaining : 0;
+    }
+
+    function isResettingSoon(acc) {
+      const remaining = getResetTimeRemaining(acc);
+      return remaining !== null && remaining > 0 && remaining < 24 * 60 * 60 * 1000;
+    }
+
+    function getDisplayStatus(acc) {
+      if (acc.status === 'available') return 'available';
+      if (isResettingSoon(acc)) return 'resetting';
+      return 'exhausted';
+    }
+
+    function formatCountdown(ms) {
+      if (ms <= 0) return '0s';
+      const days = Math.floor(ms / (24 * 60 * 60 * 1000));
+      const hours = Math.floor((ms % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+      const mins = Math.floor((ms % (60 * 60 * 1000)) / (60 * 1000));
+      const secs = Math.floor((ms % (60 * 1000)) / 1000);
+      let parts = [];
+      if (days > 0) parts.push(days + 'd');
+      if (hours > 0) parts.push(hours + 'h');
+      if (mins > 0) parts.push(mins + 'm');
+      parts.push(secs + 's');
+      return parts.join(' ');
+    }
+
+    function formatDate(iso) {
+      const d = new Date(iso);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) +
+        ' ' + d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    // ===== SORTING & FILTERING =====
+    function getFilteredAccounts() {
+      let filtered = [...accounts];
+
+      // Search
+      if (currentSearch) {
+        const q = currentSearch.toLowerCase();
+        filtered = filtered.filter(acc =>
+          (acc.email && acc.email.toLowerCase().includes(q)) ||
+          (acc.label && acc.label.toLowerCase().includes(q)) ||
+          (acc.notes && acc.notes.toLowerCase().includes(q))
+        );
+      }
+
+      // Filter
+      if (currentFilter === 'available') {
+        filtered = filtered.filter(a => a.status === 'available');
+      } else if (currentFilter === 'exhausted') {
+        filtered = filtered.filter(a => a.status === 'exhausted' && !isResettingSoon(a));
+      } else if (currentFilter === 'resetting') {
+        filtered = filtered.filter(a => isResettingSoon(a));
+      }
+
+      // Sort: available first, then by reset time (soonest first), then alphabetical
+      filtered.sort((a, b) => {
+        const sa = getDisplayStatus(a);
+        const sb = getDisplayStatus(b);
+        const order = { available: 0, resetting: 1, exhausted: 2 };
+        if (order[sa] !== order[sb]) return order[sa] - order[sb];
+        if (sa === 'resetting' || sa === 'exhausted') {
+          const ra = getResetTimeRemaining(a) || Infinity;
+          const rb = getResetTimeRemaining(b) || Infinity;
+          return ra - rb;
+        }
+        return (a.label || a.email).localeCompare(b.label || b.email);
+      });
+
+      return filtered;
+    }
+
+    // ===== RENDER =====
+    function renderStats() {
+      const total = accounts.length;
+      const available = accounts.filter(a => a.status === 'available').length;
+      const exhausted = accounts.filter(a => a.status === 'exhausted').length;
+      const resetting = accounts.filter(a => isResettingSoon(a)).length;
+
+      document.getElementById('stat-total').textContent = total;
+      document.getElementById('stat-available').textContent = available;
+      document.getElementById('stat-exhausted').textContent = exhausted;
+      document.getElementById('stat-resetting').textContent = resetting;
+    }
+
+    function renderCards() {
+      const grid = document.getElementById('cards-grid');
+      const empty = document.getElementById('empty-state');
+      const filtered = getFilteredAccounts();
+
+      if (accounts.length === 0) {
+        grid.style.display = 'none';
+        empty.style.display = 'block';
+        return;
+      }
+
+      empty.style.display = 'none';
+      grid.style.display = 'grid';
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state" style="grid-column:1/-1;padding:40px 0;">
+            <div class="empty-icon">🔍</div>
+            <div class="empty-title">No matching accounts</div>
+            <div class="empty-desc">Try adjusting your search or filter criteria.</div>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = filtered.map((acc, idx) => {
+        const ds = getDisplayStatus(acc);
+        const remaining = getResetTimeRemaining(acc);
+        const resetDays = acc.resetDays || 7;
+        const totalMs = resetDays * 24 * 60 * 60 * 1000;
+        const resetTimeMs = getAccountResetTime(acc);
+        const exhaustedAtMs = acc.resetAt ? (resetTimeMs - totalMs) : (acc.limitExhaustedAt ? new Date(acc.limitExhaustedAt).getTime() : null);
+        const elapsed = exhaustedAtMs ? (Date.now() - exhaustedAtMs) : 0;
+        const progressPct = remaining !== null && totalMs > 0 ? Math.min(100, Math.round((elapsed / totalMs) * 100)) : 0;
+        const resetDate = resetTimeMs ? new Date(resetTimeMs) : null;
+        const isSoon = ds === 'resetting';
+
+        const countdownHtml = acc.status === 'exhausted' && remaining !== null ? `
+          <div class="card-reset-info ${isSoon ? 'resetting-soon' : ''}" data-card-reset="${acc.id}">
+            <div class="reset-usage-row">
+              <span class="reset-usage-text">0% usage remaining</span>
+              <span class="reset-countdown" data-reset-timer="${acc.id}">${formatCountdown(remaining)}</span>
+            </div>
+            <div class="reset-progress-row">
+              <div class="reset-progress-track">
+                <div class="reset-progress-bar ${isSoon ? 'recovering' : ''}" style="width: ${progressPct}%"></div>
+              </div>
+              <span class="reset-pct" data-reset-pct="${acc.id}">${progressPct}%</span>
+            </div>
+            <div class="reset-meta-text" data-reset-meta="${acc.id}">
+              <span>${resetDays === 7 ? 'Weekly' : 'Every ' + resetDays + 'd'}</span><span class="reset-separator">·</span><span data-reset-pct-meta="${acc.id}">${progressPct}%</span><span class="reset-separator">·</span><span class="reset-date">${resetDate ? formatResetDateShort(resetDate) : '—'}</span>
+            </div>
+          </div>
+        ` : '';
+
+        const toggleLabel = acc.status === 'available' ? '🚫 Mark Exhausted' : '✅ Mark Available';
+        const toggleClass = acc.status === 'available' ? 'btn-danger' : '';
+
+        return `
+          <div class="account-card status-${ds}" style="animation-delay: ${idx * 0.06}s" data-id="${acc.id}">
+            <div class="card-header">
+              <div class="card-identity">
+                <div class="card-label">${escapeHtml(acc.label || acc.email)}</div>
+                ${acc.label ? `<div class="card-email">${escapeHtml(acc.email)}</div>` : ''}
+              </div>
+              <span class="card-status-badge ${ds}">
+                <span class="status-dot ${ds}"></span>
+                ${ds === 'available' ? 'Available' : ds === 'resetting' ? 'Resetting' : 'Exhausted'}
+              </span>
+            </div>
+            ${countdownHtml}
+            ${acc.notes ? `<div class="card-notes">${escapeHtml(acc.notes)}</div>` : ''}
+            <div class="card-actions">
+              <button class="btn btn-sm ${toggleClass}" onclick="toggleStatus('${acc.id}')">
+                ${toggleLabel}
+              </button>
+              <button class="btn btn-sm" onclick="openEditModal('${acc.id}')" title="Edit">✏️</button>
+              <button class="btn btn-sm" onclick="openLogModal('${acc.id}')" title="Usage Log">📋</button>
+              <button class="btn btn-sm" onclick="confirmDelete('${acc.id}')" title="Delete">🗑️</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderAll() {
+      checkAutoRecovery();
+      renderStats();
+      renderCards();
+    }
+
+    function formatResetDate(date) {
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const month = months[date.getMonth()];
+      const day = date.getDate();
+      let hours = date.getHours();
+      const mins = date.getMinutes().toString().padStart(2, '0');
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12 || 12;
+      return `${month} ${day} at ${hours}:${mins} ${ampm}`;
+    }
+
+    function formatResetDateShort(date) {
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return `${months[date.getMonth()]} ${date.getDate()}`;
+    }
+
+    function updateCountdowns() {
+      checkAutoRecovery();
+      accounts.forEach(acc => {
+        const resetBlock = document.querySelector(`[data-card-reset="${acc.id}"]`);
+        if (resetBlock) {
+          const remaining = getResetTimeRemaining(acc);
+          const resetDays = acc.resetDays || 7;
+          const totalMs = resetDays * 24 * 60 * 60 * 1000;
+          const resetTimeMs = getAccountResetTime(acc);
+          const exhaustedAtMs = acc.resetAt ? (resetTimeMs - totalMs) : (acc.limitExhaustedAt ? new Date(acc.limitExhaustedAt).getTime() : null);
+          const elapsed = exhaustedAtMs ? (Date.now() - exhaustedAtMs) : 0;
+          const progressPct = remaining !== null && totalMs > 0 ? Math.min(100, Math.round((elapsed / totalMs) * 100)) : 0;
+
+          // Update progress bar
+          const bar = resetBlock.querySelector('.reset-progress-bar');
+          if (bar) bar.style.width = progressPct + '%';
+
+          // Update countdown timer
+          const timerEl = document.querySelector(`[data-reset-timer="${acc.id}"]`);
+          if (timerEl && remaining !== null) timerEl.textContent = formatCountdown(remaining);
+
+          // Update percentage
+          const pctEl = document.querySelector(`[data-reset-pct="${acc.id}"]`);
+          if (pctEl) pctEl.textContent = progressPct + '%';
+          const pctMetaEl = document.querySelector(`[data-reset-pct-meta="${acc.id}"]`);
+          if (pctMetaEl) pctMetaEl.textContent = progressPct + '%';
+
+          // Update reset date
+          const resetDate = resetTimeMs ? new Date(resetTimeMs) : null;
+          const metaEl = resetBlock.querySelector(`[data-reset-meta="${acc.id}"]`);
+          if (metaEl && resetDate) {
+            metaEl.innerHTML = `<span>${resetDays === 7 ? 'Weekly' : 'Every ' + resetDays + 'd'}</span><span class="reset-separator">·</span><span data-reset-pct-meta="${acc.id}">${progressPct}%</span><span class="reset-separator">·</span><span class="reset-date">${formatResetDateShort(resetDate)}</span>`;
+          }
+        }
+      });
+      // Update stats for resetting soon count
+      renderStats();
+    }
+
+    // ===== ACTIONS =====
+    function toggleStatus(id) {
+      const acc = accounts.find(a => a.id === id);
+      if (!acc) return;
+
+      if (acc.status === 'available') {
+        // Open the exhaust modal to ask for reset date
+        openExhaustModal(id);
+      } else {
+        acc.status = 'available';
+        acc.limitExhaustedAt = null;
+        acc.resetAt = null;
+        acc.usageLog.push({
+          timestamp: new Date().toISOString(),
+          action: 'available',
+          note: 'Manually marked as available'
+        });
+        showToast('Account marked as available!', 'success');
+        saveAccounts();
+        renderAll();
+      }
+    }
+
+    function openExhaustModal(id) {
+      const acc = accounts.find(a => a.id === id);
+      if (!acc) return;
+      document.getElementById('exhaust-account-info').innerHTML = `
+        Mark <span class="confirm-email" style="color:var(--accent-blue);">${escapeHtml(acc.label || acc.email)}</span> as exhausted.
+      `;
+      // Pre-fill with default reset date (now + resetDays)
+      const defaultReset = new Date(Date.now() + (acc.resetDays || 7) * 24 * 60 * 60 * 1000);
+      document.getElementById('exhaust-reset-date').value = toLocalDatetimeString(defaultReset);
+      document.getElementById('btn-confirm-exhaust').onclick = () => {
+        const resetDateVal = document.getElementById('exhaust-reset-date').value;
+        acc.status = 'exhausted';
+        acc.limitExhaustedAt = new Date().toISOString();
+        if (resetDateVal) {
+          acc.resetAt = new Date(resetDateVal).toISOString();
+        } else {
+          acc.resetAt = null;
+        }
+        acc.usageLog.push({
+          timestamp: new Date().toISOString(),
+          action: 'exhausted',
+          note: acc.resetAt ? `Marked exhausted, resets on ${formatResetDate(new Date(acc.resetAt))}` : 'Marked exhausted'
+        });
+        saveAccounts();
+        renderAll();
+        closeModal('modal-exhaust');
+        showToast('Account marked as exhausted', 'info');
+      };
+      openModal('modal-exhaust');
+    }
+
+    function toLocalDatetimeString(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      const h = String(date.getHours()).padStart(2, '0');
+      const min = String(date.getMinutes()).padStart(2, '0');
+      return `${y}-${m}-${d}T${h}:${min}`;
+    }
+
+    function toggleResetDateField() {
+      const status = document.getElementById('account-status').value;
+      const group = document.getElementById('reset-date-group');
+      group.style.display = status === 'exhausted' ? 'block' : 'none';
+    }
+
+    function openAddModal() {
+      document.getElementById('modal-account-title').textContent = 'Add Account';
+      document.getElementById('btn-save-account').textContent = 'Add Account';
+      document.getElementById('form-account').reset();
+      document.getElementById('account-id').value = '';
+      document.getElementById('account-reset-days').value = '7';
+      document.getElementById('account-reset-date').value = '';
+      document.getElementById('reset-date-group').style.display = 'none';
+      openModal('modal-account');
+    }
+
+    function openEditModal(id) {
+      const acc = accounts.find(a => a.id === id);
+      if (!acc) return;
+
+      document.getElementById('modal-account-title').textContent = 'Edit Account';
+      document.getElementById('btn-save-account').textContent = 'Save Changes';
+      document.getElementById('account-id').value = acc.id;
+      document.getElementById('account-email').value = acc.email;
+      document.getElementById('account-label').value = acc.label || '';
+      document.getElementById('account-status').value = acc.status;
+      document.getElementById('account-reset-days').value = acc.resetDays || 7;
+      document.getElementById('account-notes').value = acc.notes || '';
+      // Show/populate reset date field
+      if (acc.status === 'exhausted') {
+        document.getElementById('reset-date-group').style.display = 'block';
+        if (acc.resetAt) {
+          document.getElementById('account-reset-date').value = toLocalDatetimeString(new Date(acc.resetAt));
+        } else if (acc.limitExhaustedAt) {
+          const resetMs = (acc.resetDays || 7) * 24 * 60 * 60 * 1000;
+          const calcDate = new Date(new Date(acc.limitExhaustedAt).getTime() + resetMs);
+          document.getElementById('account-reset-date').value = toLocalDatetimeString(calcDate);
+        } else {
+          document.getElementById('account-reset-date').value = '';
+        }
+      } else {
+        document.getElementById('reset-date-group').style.display = 'none';
+        document.getElementById('account-reset-date').value = '';
+      }
+      openModal('modal-account');
+    }
+
+    function handleAccountSubmit(e) {
+      e.preventDefault();
+      const id = document.getElementById('account-id').value;
+      const email = document.getElementById('account-email').value.trim();
+      const label = document.getElementById('account-label').value.trim();
+      const status = document.getElementById('account-status').value;
+      const resetDays = parseInt(document.getElementById('account-reset-days').value) || 7;
+      const notes = document.getElementById('account-notes').value.trim();
+      const resetDateVal = document.getElementById('account-reset-date').value;
+
+      if (!email) return;
+
+      if (id) {
+        // Edit existing
+        const acc = accounts.find(a => a.id === id);
+        if (!acc) return;
+        const oldStatus = acc.status;
+        acc.email = email;
+        acc.label = label;
+        acc.status = status;
+        acc.resetDays = resetDays;
+        acc.notes = notes;
+
+        if (status === 'exhausted') {
+          if (resetDateVal) {
+            acc.resetAt = new Date(resetDateVal).toISOString();
+          }
+          if (oldStatus !== 'exhausted') {
+            acc.limitExhaustedAt = new Date().toISOString();
+          }
+        } else {
+          acc.limitExhaustedAt = null;
+          acc.resetAt = null;
+        }
+
+        if (oldStatus !== status) {
+          acc.usageLog.push({
+            timestamp: new Date().toISOString(),
+            action: status,
+            note: status === 'exhausted' && acc.resetAt
+              ? `Status changed via edit, resets on ${formatResetDate(new Date(acc.resetAt))}`
+              : 'Status changed via edit'
+          });
+        }
+        showToast('Account updated!', 'success');
+      } else {
+        // Check duplicate email
+        if (accounts.some(a => a.email.toLowerCase() === email.toLowerCase())) {
+          showToast('An account with this email already exists!', 'error');
+          return;
+        }
+
+        // Add new
+        const resetAt = (status === 'exhausted' && resetDateVal) ? new Date(resetDateVal).toISOString() : null;
+        const newAcc = {
+          id: generateId(),
+          email,
+          label,
+          status,
+          limitExhaustedAt: status === 'exhausted' ? new Date().toISOString() : null,
+          resetAt,
+          resetDays,
+          notes,
+          usageLog: [{
+            timestamp: new Date().toISOString(),
+            action: 'created',
+            note: 'Account added'
+          }]
+        };
+        if (status === 'exhausted') {
+          newAcc.usageLog.push({
+            timestamp: new Date().toISOString(),
+            action: 'exhausted',
+            note: resetAt ? `Added as exhausted, resets on ${formatResetDate(new Date(resetAt))}` : 'Added as exhausted'
+          });
+        }
+        accounts.push(newAcc);
+        showToast('Account added!', 'success');
+      }
+
+      saveAccounts();
+      renderAll();
+      closeModal('modal-account');
+    }
+
+    function confirmDelete(id) {
+      const acc = accounts.find(a => a.id === id);
+      if (!acc) return;
+      document.getElementById('confirm-text').innerHTML = `
+        Are you sure you want to delete the account <span class="confirm-email">${escapeHtml(acc.email)}</span>?
+        This action cannot be undone. All usage history will be lost.
+      `;
+      document.getElementById('btn-confirm-delete').onclick = () => {
+        accounts = accounts.filter(a => a.id !== id);
+        saveAccounts();
+        renderAll();
+        closeModal('modal-confirm');
+        showToast('Account deleted', 'info');
+      };
+      openModal('modal-confirm');
+    }
+
+    // ===== USAGE LOG =====
+    function openLogModal(id) {
+      const acc = accounts.find(a => a.id === id);
+      if (!acc) return;
+      editingLogAccountId = id;
+      document.getElementById('modal-log-title').textContent = `📋 Log: ${acc.label || acc.email}`;
+      const list = document.getElementById('log-list');
+
+      if (!acc.usageLog || acc.usageLog.length === 0) {
+        list.innerHTML = '<div class="log-empty">No log entries yet.</div>';
+      } else {
+        const sorted = [...acc.usageLog].reverse();
+        list.innerHTML = sorted.map(entry => `
+          <div class="log-entry">
+            <span class="log-dot ${entry.action}"></span>
+            <div>
+              <div class="log-action">${capitalize(entry.action)}</div>
+              ${entry.note ? `<div class="log-note">${escapeHtml(entry.note)}</div>` : ''}
+              <div class="log-time">${formatDate(entry.timestamp)}</div>
+            </div>
+          </div>
+        `).join('');
+      }
+      openModal('modal-log');
+    }
+
+    function clearCurrentLog() {
+      if (!editingLogAccountId) return;
+      const acc = accounts.find(a => a.id === editingLogAccountId);
+      if (!acc) return;
+      acc.usageLog = [];
+      saveAccounts();
+      openLogModal(editingLogAccountId); // refresh
+      showToast('Log cleared', 'info');
+    }
+
+    // ===== IMPORT / EXPORT =====
+    document.getElementById('btn-export').addEventListener('click', () => {
+      if (accounts.length === 0) {
+        showToast('No accounts to export', 'error');
+        return;
+      }
+      const blob = new Blob([JSON.stringify(accounts, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `codex_accounts_backup_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('Accounts exported!', 'success');
+    });
+
+    document.getElementById('btn-import').addEventListener('click', () => {
+      document.getElementById('file-import').click();
+    });
+
+    document.getElementById('file-import').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const data = JSON.parse(ev.target.result);
+          if (!Array.isArray(data)) throw new Error('Invalid format');
+          // Validate structure
+          data.forEach(acc => {
+            if (!acc.email) throw new Error('Missing email field');
+            if (!acc.id) acc.id = generateId();
+            if (!acc.usageLog) acc.usageLog = [];
+            if (!acc.status) acc.status = 'available';
+            if (!acc.resetDays) acc.resetDays = 7;
+          });
+          // Merge: skip duplicates by email
+          let added = 0;
+          let skipped = 0;
+          data.forEach(imported => {
+            if (accounts.some(a => a.email.toLowerCase() === imported.email.toLowerCase())) {
+              skipped++;
+            } else {
+              accounts.push(imported);
+              added++;
+            }
+          });
+          saveAccounts();
+          renderAll();
+          showToast(`Imported ${added} account(s)${skipped ? `, ${skipped} skipped (duplicates)` : ''}`, 'success');
+        } catch (err) {
+          showToast('Import failed: ' + err.message, 'error');
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = ''; // reset
+    });
+
+    // ===== SEARCH & FILTER =====
+    document.getElementById('search-input').addEventListener('input', (e) => {
+      currentSearch = e.target.value.trim();
+      renderCards();
+    });
+
+    document.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        currentFilter = chip.dataset.filter;
+        renderCards();
+      });
+    });
+
+    // ===== ADD ACCOUNT BUTTON =====
+    document.getElementById('btn-add-account').addEventListener('click', openAddModal);
+
+    // ===== MODAL HELPERS =====
+    function openModal(id) {
+      document.getElementById(id).classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    // Close modal on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+          overlay.classList.remove('active');
+          document.body.style.overflow = '';
+        }
+      });
+    });
+
+    // Close modal on Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        document.querySelectorAll('.modal-overlay.active').forEach(m => {
+          m.classList.remove('active');
+        });
+        document.body.style.overflow = '';
+      }
+    });
+
+    // ===== TOAST =====
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.innerHTML = `<span>${icons[type] || 'ℹ️'}</span><span>${escapeHtml(message)}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.animation = 'toastOut 0.3s ease-in forwards';
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    // ===== UTILITY =====
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function capitalize(str) {
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    // ===== INIT =====
+    function init() {
+      loadAccounts();
+      renderAll();
+      // Update countdowns every second
+      timerInterval = setInterval(updateCountdowns, 1000);
+    }
+
+    init();
+  </script>
+</body>
+</html>
