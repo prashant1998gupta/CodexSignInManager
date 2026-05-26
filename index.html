@@ -857,6 +857,9 @@
         <button class="btn btn-primary" id="btn-add-account">
           <span class="icon">＋</span> Add Account
         </button>
+        <button class="btn btn-danger" id="btn-logout" title="Sign Out" style="display:none;">
+          <span class="icon">🚪</span> Sign Out
+        </button>
       </div>
     </header>
 
@@ -1033,6 +1036,58 @@
   <!-- Toast container -->
   <div class="toast-container" id="toast-container"></div>
 
+  <!-- Login Overlay -->
+  <div class="modal-overlay active" id="modal-login" style="background: var(--bg-primary); z-index: 9999;">
+    <div class="modal" style="max-width:400px; text-align:center;">
+      <div class="logo-icon" style="margin: 0 auto 20px; font-size:40px; width:80px; height:80px; display:flex; align-items:center; justify-content:center; background: linear-gradient(135deg, var(--accent-green), var(--accent-blue)); border-radius: var(--radius-md); box-shadow: 0 10px 30px rgba(0, 230, 138, 0.4);">⚡</div>
+      <h2 class="modal-title" style="margin-bottom:10px;">Welcome Back</h2>
+      <p style="color:var(--text-secondary); margin-bottom:30px;">Sign in to access your Codex accounts.</p>
+      <button class="btn btn-primary" id="btn-login" style="width:100%; justify-content:center; padding:12px; font-size:1rem;">
+        Sign in with Google
+      </button>
+      <p style="color:var(--text-muted); font-size:0.8rem; margin-top:20px;">Ensure you have updated <br><code>firebase-config.js</code> with your keys.</p>
+    </div>
+  </div>
+
+  <script type="module">
+    import { auth, db, provider, signInWithPopup, signOut, onAuthStateChanged, doc, setDoc, onSnapshot } from './firebase-config.js';
+    
+    window.firebaseAuth = auth;
+    window.firebaseDb = db;
+    window.doc = doc;
+    window.setDoc = setDoc;
+    window.onSnapshot = onSnapshot;
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        window.currentUser = user;
+        document.getElementById('modal-login').classList.remove('active');
+        document.getElementById('btn-logout').style.display = 'inline-flex';
+        if (window.loadAccountsFromFirebase) window.loadAccountsFromFirebase();
+      } else {
+        window.currentUser = null;
+        document.getElementById('modal-login').classList.add('active');
+        document.getElementById('btn-logout').style.display = 'none';
+        if (window.clearLocalAccounts) window.clearLocalAccounts();
+      }
+    });
+
+    document.getElementById('btn-login').addEventListener('click', () => {
+      if (!auth) {
+        alert("Firebase is not configured! Please open firebase-config.js and add your keys.");
+        return;
+      }
+      signInWithPopup(auth, provider).catch(err => {
+        console.error("Login failed:", err);
+        alert("Login failed: " + err.message);
+      });
+    });
+
+    document.getElementById('btn-logout').addEventListener('click', () => {
+      if (auth) signOut(auth);
+    });
+  </script>
+
   <script>
     // ===== DATA LAYER =====
     const STORAGE_KEY = 'codex_accounts';
@@ -1046,7 +1101,38 @@
       return 'acc_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 8);
     }
 
+    let unsubscribeSnapshot = null;
+
+    window.clearLocalAccounts = function() {
+      accounts = [];
+      if (unsubscribeSnapshot) {
+        unsubscribeSnapshot();
+        unsubscribeSnapshot = null;
+      }
+      if (typeof renderAll === 'function') renderAll();
+    };
+
+    window.loadAccountsFromFirebase = function() {
+      if (!window.currentUser || !window.firebaseDb) return;
+      try {
+        const userDoc = window.doc(window.firebaseDb, "users", window.currentUser.uid);
+        if (unsubscribeSnapshot) unsubscribeSnapshot();
+        
+        unsubscribeSnapshot = window.onSnapshot(userDoc, (docSnap) => {
+          if (docSnap.exists()) {
+            accounts = docSnap.data().accounts || [];
+          } else {
+            accounts = [];
+          }
+          if (typeof renderAll === 'function') renderAll();
+        });
+      } catch (e) {
+        console.error("Error loading accounts:", e);
+      }
+    };
+
     function loadAccounts() {
+      // Fallback to localStorage if Firebase is not used or offline
       try {
         const data = localStorage.getItem(STORAGE_KEY);
         accounts = data ? JSON.parse(data) : [];
@@ -1055,8 +1141,18 @@
       }
     }
 
-    function saveAccounts() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts));
+    async function saveAccounts() {
+      if (!window.currentUser || !window.firebaseDb) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts));
+        return;
+      }
+      try {
+        const userDoc = window.doc(window.firebaseDb, "users", window.currentUser.uid);
+        await window.setDoc(userDoc, { accounts: accounts });
+      } catch (e) {
+        console.error("Error saving accounts:", e);
+        showToast('Error saving to cloud', 'error');
+      }
     }
 
     // ===== AUTO RECOVERY CHECK =====

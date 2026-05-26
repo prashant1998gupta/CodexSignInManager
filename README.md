@@ -45,7 +45,8 @@ Managing multiple Codex free accounts manually is painful. Here's why this tool 
 | ✏️ **Full CRUD** | Add, edit, delete accounts with duplicate email detection |
 | 📤 **Export / Import** | Backup all data as JSON, import from JSON with duplicate skip |
 | 📱 **Responsive Design** | Works on desktop, tablet, and mobile screens |
-| 💾 **Local Storage** | All data persisted in browser — survives page refreshes, no server needed |
+| ☁️ **Cloud Database** | Uses Firebase Firestore to persist data, allowing cross-device syncing |
+| 🔒 **Authentication** | Secure Google Sign-In so only you can access your accounts |
 
 ## 🖥️ How It Works
 
@@ -74,7 +75,16 @@ Managing multiple Codex free accounts manually is painful. Here's why this tool 
 
 ### Prerequisites
 - Any modern web browser (Chrome, Firefox, Edge, Safari)
-- That's it! No server, no Node.js, no Python required.
+- A free [Firebase](https://firebase.google.com/) account.
+
+### Firebase Setup (Required)
+Since this app uses a cloud database to sync your accounts across devices, you need to provide your own free database:
+1. Go to the [Firebase Console](https://console.firebase.google.com/) and create a new project.
+2. In the left menu, click **Authentication** -> **Sign-in method** and enable **Google**.
+3. In the left menu, click **Firestore Database** -> **Create database** (start in Test Mode or set secure rules).
+4. Click the Gear Icon ⚙️ (Project Settings) -> **General** -> scroll down to **Your apps** and click the Web `</>` icon.
+5. Register the app and copy the `firebaseConfig` object.
+6. Open `firebase-config.js` in this project and paste your keys into the `firebaseConfig` object.
 
 ### Installation
 
@@ -89,7 +99,8 @@ Managing multiple Codex free accounts manually is painful. Here's why this tool 
    ```
    Double-click `index.html` or open it in your browser.
 
-3. **Start adding accounts** — Click the "＋ Add Account" button and enter your Codex email.
+3. **Sign In** — Click the "Sign in with Google" button.
+4. **Start adding accounts** — Click the "＋ Add Account" button and enter your Codex email.
 
 ### Usage
 
@@ -107,16 +118,17 @@ Managing multiple Codex free accounts manually is painful. Here's why this tool 
 |---|---|
 | **HTML5** | Page structure and semantic layout |
 | **CSS3** | Glassmorphism theme, animations, responsive grid |
-| **JavaScript (ES6+)** | Data management, timers, localStorage, CRUD |
+| **JavaScript (ES6+)** | Data management, timers, CRUD |
+| **Firebase** | Cloud Firestore for data and Auth for login |
 | **Google Fonts (Inter)** | Modern typography |
-| **localStorage** | Client-side data persistence |
 
 ## 📁 Project Structure
 
-```
+```text
 CodexSignInManager/
-├── index.html      # Complete dashboard (HTML + CSS + JS in one file)
-└── README.md       # This file
+├── index.html             # Complete dashboard (HTML + CSS + JS in one file)
+├── firebase-config.js     # Firebase connection settings
+└── README.md              # This file
 ```
 
 ## 🤝 Contributing
