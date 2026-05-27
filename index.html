@@ -2015,21 +2015,23 @@
       document.body.style.overflow = '';
     }
 
-    // Close modal on overlay click
+    // Close modal on overlay click (except login modal — that requires authentication)
     document.querySelectorAll('.modal-overlay').forEach(overlay => {
       overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) {
+        if (e.target === overlay && overlay.id !== 'modal-login') {
           overlay.classList.remove('active');
           document.body.style.overflow = '';
         }
       });
     });
 
-    // Close modal on Escape
+    // Close modal on Escape (except login modal)
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         document.querySelectorAll('.modal-overlay.active').forEach(m => {
-          m.classList.remove('active');
+          if (m.id !== 'modal-login') {
+            m.classList.remove('active');
+          }
         });
         document.body.style.overflow = '';
       }
