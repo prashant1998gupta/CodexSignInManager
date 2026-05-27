@@ -1588,8 +1588,7 @@
             <div class="card-header">
               <div class="card-identity">
                 <div class="card-label">${escapeHtml(acc.label || acc.email)}</div>
-                ${acc.label ? `<div class="card-email" style="display:flex; align-items:center; gap:6px;">${escapeHtml(acc.email)} <button class="btn btn-sm" style="padding:2px 6px; font-size:0.75rem; background:var(--bg-input)" onclick="copyToClipboard('${acc.email}')" title="Copy Email">📋</button></div>` : 
-                `<div class="card-email" style="margin-top:6px;"><button class="btn btn-sm" style="padding:2px 6px; font-size:0.75rem; background:var(--bg-input)" onclick="copyToClipboard('${acc.email}')" title="Copy Email">📋 Copy Email</button></div>`}
+                ${acc.label ? `<div class="card-email">${escapeHtml(acc.email)}</div>` : ''}
               </div>
               <span class="card-status-badge ${ds}">
                 <span class="status-dot ${ds}"></span>
@@ -1602,8 +1601,9 @@
               <button class="btn btn-sm ${toggleClass}" onclick="toggleStatus('${acc.id}')">
                 ${toggleLabel}
               </button>
+              <button class="btn btn-sm" onclick="copyToClipboard('${acc.email}')" title="Copy Email">📋</button>
               <button class="btn btn-sm" onclick="openEditModal('${acc.id}')" title="Edit">✏️</button>
-              <button class="btn btn-sm" onclick="openLogModal('${acc.id}')" title="Usage Log">📋</button>
+              <button class="btn btn-sm" onclick="openLogModal('${acc.id}')" title="Usage Log">🕒</button>
               <button class="btn btn-sm" onclick="confirmDelete('${acc.id}')" title="Delete">🗑️</button>
             </div>
           </div>
