@@ -84,7 +84,8 @@ Since this app uses a cloud database to sync your accounts across devices, you n
 3. In the left menu, click **Firestore Database** -> **Create database** (start in Test Mode or set secure rules).
 4. Click the Gear Icon ⚙️ (Project Settings) -> **General** -> scroll down to **Your apps** and click the Web `</>` icon.
 5. Register the app and copy the `firebaseConfig` object.
-6. Open `firebase-config.js` in this project and paste your keys into the `firebaseConfig` object.
+6. Copy the `firebase-env.example.js` file and rename it to `firebase-env.js`.
+7. Open `firebase-env.js` and paste your keys into the `window.FIREBASE_CONFIG` object. (This file is ignored by Git to keep your keys private).
 
 ### Installation
 
@@ -101,6 +102,17 @@ Since this app uses a cloud database to sync your accounts across devices, you n
 
 3. **Sign In** — Click the "Sign in with Google" button.
 4. **Start adding accounts** — Click the "＋ Add Account" button and enter your Codex email.
+
+### Hosting Online (Optional)
+
+Since this is a static web app, you can host it online using **Firebase Hosting** so you can access it from anywhere:
+
+1. Install Firebase CLI: `npm install -g firebase-tools`
+2. Log in: `firebase login`
+3. Initialize hosting (if not already done): `firebase init hosting`
+4. Deploy: `firebase deploy --only hosting`
+
+*(Note: Ensure you add your new hosting URL to **Authorized domains** in the Firebase Authentication settings!)*
 
 ### Usage
 
@@ -126,9 +138,12 @@ Since this app uses a cloud database to sync your accounts across devices, you n
 
 ```text
 CodexSignInManager/
-├── index.html             # Complete dashboard (HTML + CSS + JS in one file)
-├── firebase-config.js     # Firebase connection settings
-└── README.md              # This file
+├── index.html                 # Complete dashboard (HTML + CSS + JS in one file)
+├── firebase-config.js         # Firebase initialization logic
+├── firebase-env.example.js    # Template for your Firebase keys
+├── firebase-env.js            # Your actual keys (created by you, gitignored)
+├── firebase.json              # Firebase Hosting configuration
+└── README.md                  # This file
 ```
 
 ## 🤝 Contributing
