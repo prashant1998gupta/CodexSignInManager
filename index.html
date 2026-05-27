@@ -1205,7 +1205,7 @@
   </script>
 
   <script type="module">
-    import { auth, db, provider, signInWithPopup, signOut, onAuthStateChanged, doc, setDoc, onSnapshot } from './firebase-config.js';
+    import { auth, db, provider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, doc, setDoc, onSnapshot } from './firebase-config.js';
 
     // Check if Firebase initialized properly
     if (!auth || !db) {
@@ -1221,6 +1221,16 @@
       window.doc = doc;
       window.setDoc = setDoc;
       window.onSnapshot = onSnapshot;
+
+      // Handle redirect result from mobile login
+      getRedirectResult(auth).catch(err => {
+        console.error('Redirect login failed:', err);
+        const errorMap = {
+          'auth/unauthorized-domain': `This domain is not authorized. Go to <b>Firebase Console → Authentication → Settings → Authorized domains</b> and add <code>${window.location.hostname}</code>.`,
+          'auth/network-request-failed': 'Network error. Please check your internet connection.',
+        };
+        showLoginError('Sign-In Failed', errorMap[err.code] || err.message);
+      });
 
       try {
         onAuthStateChanged(auth, (user) => {
@@ -1252,21 +1262,11 @@
       }
       try {
         dismissLoginError();
-        await signInWithPopup(auth, provider);
+        // Redirect is much safer for mobile webviews (Instagram, Safari, etc.)
+        await signInWithRedirect(auth, provider);
       } catch (err) {
-        console.error('Login failed:', err);
-        // User-friendly error messages based on Firebase error codes
-        const errorMap = {
-          'auth/unauthorized-domain': `This domain is not authorized for sign-in. Go to <b>Firebase Console → Authentication → Settings → Authorized domains</b> and add <code>${window.location.hostname}</code>.`,
-          'auth/popup-closed-by-user': 'Sign-in popup was closed before completing. Please try again.',
-          'auth/popup-blocked': 'The sign-in popup was blocked by your browser. Please allow popups for this site and try again.',
-          'auth/network-request-failed': 'Network error. Please check your internet connection and try again.',
-          'auth/too-many-requests': 'Too many sign-in attempts. Please wait a moment and try again.',
-          'auth/cancelled-popup-request': 'Another sign-in popup is already open. Please close it and try again.',
-          'auth/internal-error': 'An internal Firebase error occurred. Please try again later.',
-        };
-        const friendlyMsg = errorMap[err.code] || `Login failed: ${err.message}`;
-        showLoginError('Sign-In Failed', friendlyMsg);
+        console.error('Login prep failed:', err);
+        showLoginError('Sign-In Failed', err.message);
       }
     });
 
