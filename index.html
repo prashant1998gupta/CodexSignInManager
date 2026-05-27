@@ -825,6 +825,101 @@
 
     /* Hidden file input */
     .hidden-input { display: none; }
+
+    /* ===== ERROR BANNER ===== */
+    .error-banner {
+      display: none;
+      align-items: flex-start;
+      gap: 10px;
+      background: rgba(255, 77, 106, 0.12);
+      border: 1px solid rgba(255, 77, 106, 0.35);
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      margin-top: 20px;
+      text-align: left;
+      animation: fadeIn 0.4s ease-out;
+      max-width: 100%;
+      word-break: break-word;
+    }
+    .error-banner.active {
+      display: flex;
+    }
+    .error-banner .error-icon {
+      font-size: 1.2rem;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .error-banner .error-content {
+      flex: 1;
+    }
+    .error-banner .error-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--accent-red);
+      margin-bottom: 4px;
+    }
+    .error-banner .error-message {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .error-banner .error-message code {
+      background: rgba(255,255,255,0.08);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.78rem;
+    }
+    .error-banner .error-dismiss {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 0;
+      flex-shrink: 0;
+      transition: color var(--transition-fast);
+    }
+    .error-banner .error-dismiss:hover {
+      color: var(--text-primary);
+    }
+
+    /* App-level error bar (top of main content) */
+    .app-error-bar {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255, 77, 106, 0.1);
+      border: 1px solid rgba(255, 77, 106, 0.25);
+      border-radius: var(--radius-md);
+      padding: 12px 18px;
+      margin-bottom: 20px;
+      animation: fadeIn 0.4s ease-out;
+    }
+    .app-error-bar.active {
+      display: flex;
+    }
+    .app-error-bar .error-icon {
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+    .app-error-bar .error-text {
+      flex: 1;
+      font-size: 0.85rem;
+      color: var(--accent-red);
+      font-weight: 500;
+    }
+    .app-error-bar .error-dismiss {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 0 4px;
+      transition: color var(--transition-fast);
+    }
+    .app-error-bar .error-dismiss:hover {
+      color: var(--text-primary);
+    }
   </style>
 </head>
 <body>
@@ -1049,45 +1144,133 @@
         Sign in with Google
       </button>
       <p style="color:var(--text-muted); font-size:0.8rem; margin-top:20px;">Ensure you have created <br><code>firebase-env.js</code> with your keys.</p>
+      <!-- Error banner on login screen -->
+      <div class="error-banner" id="login-error-banner">
+        <span class="error-icon">⚠️</span>
+        <div class="error-content">
+          <div class="error-title" id="login-error-title">Error</div>
+          <div class="error-message" id="login-error-message"></div>
+        </div>
+        <button class="error-dismiss" onclick="dismissLoginError()" title="Dismiss">✕</button>
+      </div>
     </div>
   </div>
 
+  <script>
+    // ===== GLOBAL ERROR DISPLAY HELPERS =====
+    function showLoginError(title, message) {
+      const banner = document.getElementById('login-error-banner');
+      document.getElementById('login-error-title').textContent = title;
+      document.getElementById('login-error-message').innerHTML = message;
+      banner.classList.add('active');
+    }
+    function dismissLoginError() {
+      document.getElementById('login-error-banner').classList.remove('active');
+    }
+    function showAppError(message) {
+      let bar = document.getElementById('app-error-bar');
+      if (!bar) {
+        bar = document.createElement('div');
+        bar.className = 'app-error-bar';
+        bar.id = 'app-error-bar';
+        const container = document.querySelector('.app-container');
+        const header = document.querySelector('.app-header');
+        if (header && header.nextSibling) {
+          container.insertBefore(bar, header.nextSibling);
+        } else if (container) {
+          container.prepend(bar);
+        } else {
+          document.body.prepend(bar);
+        }
+      }
+      bar.innerHTML = `<span class="error-icon">⚠️</span><span class="error-text">${message}</span><button class="error-dismiss" onclick="dismissAppError()" title="Dismiss">✕</button>`;
+      bar.classList.add('active');
+    }
+    function dismissAppError() {
+      const bar = document.getElementById('app-error-bar');
+      if (bar) bar.classList.remove('active');
+    }
+
+    // ===== FIREBASE ENV CHECK =====
+    // Show error on login screen immediately if firebase-env.js is missing
+    if (!window.FIREBASE_CONFIG || !window.FIREBASE_CONFIG.apiKey || window.FIREBASE_CONFIG.apiKey === 'YOUR_API_KEY') {
+      showLoginError(
+        'Firebase Not Configured',
+        'The file <code>firebase-env.js</code> is missing or has placeholder keys.<br>Copy <code>firebase-env.example.js</code> to <code>firebase-env.js</code> and add your Firebase credentials.'
+      );
+    }
+  </script>
+
   <script type="module">
     import { auth, db, provider, signInWithPopup, signOut, onAuthStateChanged, doc, setDoc, onSnapshot } from './firebase-config.js';
-    
-    window.firebaseAuth = auth;
-    window.firebaseDb = db;
-    window.doc = doc;
-    window.setDoc = setDoc;
-    window.onSnapshot = onSnapshot;
 
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        window.currentUser = user;
-        document.getElementById('modal-login').classList.remove('active');
-        document.getElementById('btn-logout').style.display = 'inline-flex';
-        if (window.loadAccountsFromFirebase) window.loadAccountsFromFirebase();
-      } else {
-        window.currentUser = null;
-        document.getElementById('modal-login').classList.add('active');
-        document.getElementById('btn-logout').style.display = 'none';
-        if (window.clearLocalAccounts) window.clearLocalAccounts();
+    // Check if Firebase initialized properly
+    if (!auth || !db) {
+      if (window.FIREBASE_CONFIG && window.FIREBASE_CONFIG.apiKey && window.FIREBASE_CONFIG.apiKey !== 'YOUR_API_KEY') {
+        showLoginError(
+          'Firebase Initialization Failed',
+          'Your keys were found but Firebase could not start. Check the browser console for details.'
+        );
       }
-    });
+    } else {
+      window.firebaseAuth = auth;
+      window.firebaseDb = db;
+      window.doc = doc;
+      window.setDoc = setDoc;
+      window.onSnapshot = onSnapshot;
 
-    document.getElementById('btn-login').addEventListener('click', () => {
+      try {
+        onAuthStateChanged(auth, (user) => {
+          if (user) {
+            dismissLoginError();
+            window.currentUser = user;
+            document.getElementById('modal-login').classList.remove('active');
+            document.getElementById('btn-logout').style.display = 'inline-flex';
+            if (window.loadAccountsFromFirebase) window.loadAccountsFromFirebase();
+          } else {
+            window.currentUser = null;
+            document.getElementById('modal-login').classList.add('active');
+            document.getElementById('btn-logout').style.display = 'none';
+            if (window.clearLocalAccounts) window.clearLocalAccounts();
+          }
+        });
+      } catch (err) {
+        showLoginError('Authentication Error', 'Failed to connect to Firebase Auth: ' + err.message);
+      }
+    }
+
+    document.getElementById('btn-login').addEventListener('click', async () => {
       if (!auth) {
-        alert("Firebase is not configured! Please open firebase-config.js and add your keys.");
+        showLoginError(
+          'Cannot Sign In',
+          'Firebase is not configured. Please create <code>firebase-env.js</code> with your Firebase credentials.'
+        );
         return;
       }
-      signInWithPopup(auth, provider).catch(err => {
-        console.error("Login failed:", err);
-        alert("Login failed: " + err.message);
-      });
+      try {
+        dismissLoginError();
+        await signInWithPopup(auth, provider);
+      } catch (err) {
+        console.error('Login failed:', err);
+        // User-friendly error messages based on Firebase error codes
+        const errorMap = {
+          'auth/unauthorized-domain': `This domain is not authorized for sign-in. Go to <b>Firebase Console → Authentication → Settings → Authorized domains</b> and add <code>${window.location.hostname}</code>.`,
+          'auth/popup-closed-by-user': 'Sign-in popup was closed before completing. Please try again.',
+          'auth/popup-blocked': 'The sign-in popup was blocked by your browser. Please allow popups for this site and try again.',
+          'auth/network-request-failed': 'Network error. Please check your internet connection and try again.',
+          'auth/too-many-requests': 'Too many sign-in attempts. Please wait a moment and try again.',
+          'auth/cancelled-popup-request': 'Another sign-in popup is already open. Please close it and try again.',
+          'auth/internal-error': 'An internal Firebase error occurred. Please try again later.',
+        };
+        const friendlyMsg = errorMap[err.code] || `Login failed: ${err.message}`;
+        showLoginError('Sign-In Failed', friendlyMsg);
+      }
     });
 
     document.getElementById('btn-logout').addEventListener('click', () => {
-      if (auth) signOut(auth);
+      if (auth) signOut(auth).catch(err => {
+        showAppError('Sign out failed: ' + err.message);
+      });
     });
   </script>
 
@@ -1121,16 +1304,37 @@
         const userDoc = window.doc(window.firebaseDb, "users", window.currentUser.uid);
         if (unsubscribeSnapshot) unsubscribeSnapshot();
         
-        unsubscribeSnapshot = window.onSnapshot(userDoc, (docSnap) => {
-          if (docSnap.exists()) {
-            accounts = docSnap.data().accounts || [];
-          } else {
-            accounts = [];
+        unsubscribeSnapshot = window.onSnapshot(userDoc, 
+          (docSnap) => {
+            dismissAppError();
+            if (docSnap.exists()) {
+              accounts = docSnap.data().accounts || [];
+            } else {
+              accounts = [];
+            }
+            if (typeof renderAll === 'function') renderAll();
+          },
+          (error) => {
+            console.error('Firestore sync error:', error);
+            const errorMap = {
+              'permission-denied': 'Firestore access denied. Check your database security rules in Firebase Console → Firestore → Rules.',
+              'unavailable': 'Cannot reach the database. Check your internet connection.',
+              'not-found': 'Database not found. Make sure you have created a Firestore database in Firebase Console.',
+              'unauthenticated': 'Authentication expired. Please sign out and sign in again.',
+            };
+            const code = error.code ? error.code.replace('firestore/', '') : '';
+            const msg = errorMap[code] || ('Cloud sync error: ' + error.message);
+            showAppError(msg);
+            // Fallback to localStorage
+            loadAccounts();
+            if (typeof renderAll === 'function') renderAll();
           }
-          if (typeof renderAll === 'function') renderAll();
-        });
+        );
       } catch (e) {
-        console.error("Error loading accounts:", e);
+        console.error('Error loading accounts:', e);
+        showAppError('Failed to connect to cloud database: ' + e.message);
+        loadAccounts();
+        if (typeof renderAll === 'function') renderAll();
       }
     };
 
@@ -1153,8 +1357,16 @@
         const userDoc = window.doc(window.firebaseDb, "users", window.currentUser.uid);
         await window.setDoc(userDoc, { accounts: accounts });
       } catch (e) {
-        console.error("Error saving accounts:", e);
-        showToast('Error saving to cloud', 'error');
+        console.error('Error saving accounts:', e);
+        const code = e.code ? e.code.replace('firestore/', '') : '';
+        if (code === 'permission-denied') {
+          showAppError('Cannot save: Firestore access denied. Check your database rules in Firebase Console.');
+        } else if (code === 'unavailable') {
+          showToast('Offline — changes saved locally, will sync when online', 'error');
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts));
+        } else {
+          showToast('Error saving to cloud: ' + e.message, 'error');
+        }
       }
     }
 
