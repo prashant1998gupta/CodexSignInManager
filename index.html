@@ -289,6 +289,19 @@
       transition: all var(--transition-fast);
       outline: none;
     }
+
+    /* ===== LOADING SPINNER ===== */
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(0, 230, 138, 0.2);
+      border-top-color: var(--accent-green);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { 
+      to { transform: rotate(360deg); } 
+    }
     .search-box input::placeholder { color: var(--text-muted); }
     .search-box input:focus {
       border-color: var(--accent-green);
@@ -1137,6 +1150,14 @@
   <!-- Load Firebase credentials (this file is gitignored, contains your keys) -->
   <script src="firebase-env.js"></script>
 
+  <!-- App Loader -->
+  <div class="modal-overlay active" id="app-loader" style="background: var(--bg-primary); z-index: 10000;">
+    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; width: 100%;">
+      <div class="spinner"></div>
+      <p style="margin-top:20px; color:var(--text-secondary); font-weight:500; font-size:1.1rem;">Syncing with Cloud...</p>
+    </div>
+  </div>
+
   <!-- Login Overlay -->
   <div class="modal-overlay active" id="modal-login" style="background: var(--bg-primary); z-index: 9999;">
     <div class="modal" style="max-width:400px; text-align:center;">
@@ -1239,10 +1260,13 @@
             window.currentUser = user;
             document.getElementById('modal-login').classList.remove('active');
             document.getElementById('btn-logout').style.display = 'inline-flex';
+            // Show loader while we fetch their data
+            document.getElementById('app-loader').classList.add('active');
             if (window.loadAccountsFromFirebase) window.loadAccountsFromFirebase();
           } else {
             window.currentUser = null;
             document.getElementById('modal-login').classList.add('active');
+            document.getElementById('app-loader').classList.remove('active');
             document.getElementById('btn-logout').style.display = 'none';
             if (window.clearLocalAccounts) window.clearLocalAccounts();
           }
@@ -1316,6 +1340,8 @@
               accounts = [];
             }
             if (typeof renderAll === 'function') renderAll();
+            // Hide the app loader once data is successfully fetched and rendered
+            document.getElementById('app-loader').classList.remove('active');
           },
           (error) => {
             console.error('Firestore sync error:', error);
@@ -1331,6 +1357,7 @@
             // Fallback to localStorage
             loadAccounts();
             if (typeof renderAll === 'function') renderAll();
+            document.getElementById('app-loader').classList.remove('active');
           }
         );
       } catch (e) {
@@ -1338,6 +1365,7 @@
         showAppError('Failed to connect to cloud database: ' + e.message);
         loadAccounts();
         if (typeof renderAll === 'function') renderAll();
+        document.getElementById('app-loader').classList.remove('active');
       }
     };
 
