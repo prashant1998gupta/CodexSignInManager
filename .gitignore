@@ -1,0 +1,5 @@
+# Firebase credentials (contains your private API keys)
+firebase-env.js
+
+# Backup files
+*.backup.json

@@ -1036,6 +1036,9 @@
   <!-- Toast container -->
   <div class="toast-container" id="toast-container"></div>
 
+  <!-- Load Firebase credentials (this file is gitignored, contains your keys) -->
+  <script src="firebase-env.js"></script>
+
   <!-- Login Overlay -->
   <div class="modal-overlay active" id="modal-login" style="background: var(--bg-primary); z-index: 9999;">
     <div class="modal" style="max-width:400px; text-align:center;">
@@ -1045,7 +1048,7 @@
       <button class="btn btn-primary" id="btn-login" style="width:100%; justify-content:center; padding:12px; font-size:1rem;">
         Sign in with Google
       </button>
-      <p style="color:var(--text-muted); font-size:0.8rem; margin-top:20px;">Ensure you have updated <br><code>firebase-config.js</code> with your keys.</p>
+      <p style="color:var(--text-muted); font-size:0.8rem; margin-top:20px;">Ensure you have created <br><code>firebase-env.js</code> with your keys.</p>
     </div>
   </div>
 
