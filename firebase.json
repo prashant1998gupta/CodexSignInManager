@@ -3,10 +3,20 @@
     "public": ".",
     "ignore": [
       "firebase.json",
+      "firestore.rules",
       "**/.*",
       "**/node_modules/**",
       "README.md",
+      "CONTRIBUTING.md",
+      "CHANGELOG.md",
+      "LICENSE",
+      "setup.bat",
+      "setup.sh",
+      "screenshots/**",
       "*.backup.json"
     ]
+  },
+  "firestore": {
+    "rules": "firestore.rules"
   }
 }

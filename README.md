@@ -54,6 +54,21 @@ Managing multiple Codex free accounts manually is painful. Here's why this tool 
 | ☁️ **Cloud Database** | Uses Firebase Firestore to persist data, allowing cross-device syncing |
 | 🔒 **Authentication** | Secure Google Sign-In so only you can access your accounts |
 
+## 📸 Screenshots
+
+<div align="center">
+
+### Login Screen
+<img src="screenshots/login.png" alt="Login Screen" width="700">
+
+### Dashboard
+<img src="screenshots/dashboard.png" alt="Dashboard" width="700">
+
+### Mobile View
+<img src="screenshots/mobile.png" alt="Mobile View" width="350">
+
+</div>
+
 ## 🖥️ How It Works
 
 ```
@@ -98,16 +113,30 @@ Since this app uses a cloud database to sync your accounts across devices, you n
 1. **Clone the repository:**
    ```bash
    git clone https://github.com/prashant1998gupta/CodexSignInManager.git
-   ```
-
-2. **Open the dashboard:**
-   ```bash
    cd CodexSignInManager
    ```
+
+2. **Run the setup script:**
+   ```bash
+   # Windows
+   setup.bat
+
+   # Mac/Linux
+   chmod +x setup.sh && ./setup.sh
+   ```
+   This creates `firebase-env.js` from the template.
+
+3. **Add your Firebase keys:**
+   Open `firebase-env.js` and replace the placeholder values with your real credentials.
+
+4. **Set up Firestore security rules:**
+   Copy the contents of `firestore.rules` and paste them in **Firebase Console → Firestore → Rules → Edit rules → Publish**.
+
+5. **Open the dashboard:**
    Double-click `index.html` or open it in your browser.
 
-3. **Sign In** — Click the "Sign in with Google" button.
-4. **Start adding accounts** — Click the "＋ Add Account" button and enter your Codex email.
+6. **Sign In** — Click the "Sign in with Google" button.
+7. **Start adding accounts** — Click the "＋ Add Account" button and enter your Codex email.
 
 ### 🌐 Hosting Online (Firebase Hosting)
 
@@ -178,10 +207,23 @@ CodexSignInManager/
 ├── firebase-env.example.js    # Template — copy this to firebase-env.js
 ├── firebase-env.js            # 🔒 Your actual Firebase keys (gitignored)
 ├── firebase.json              # Firebase Hosting configuration
+├── firestore.rules            # Firestore security rules (copy to Firebase Console)
 ├── .firebaserc                # Links project to your Firebase project ID
 ├── manifest.json              # PWA manifest (name, icons, theme color)
 ├── sw.js                      # Service Worker for offline caching
+├── setup.bat                  # Quick setup script (Windows)
+├── setup.sh                   # Quick setup script (Mac/Linux)
+├── icons/
+│   ├── icon-192.png           # App icon 192×192 (PWA)
+│   └── icon-512.png           # App icon 512×512 (PWA + favicon)
+├── screenshots/
+│   ├── dashboard.png          # Dashboard screenshot for README
+│   ├── login.png              # Login screen screenshot for README
+│   └── mobile.png             # Mobile view screenshot for README
 ├── .gitignore                 # Ignores firebase-env.js, .firebase/, etc.
+├── LICENSE                    # MIT License
+├── CONTRIBUTING.md            # How to contribute
+├── CHANGELOG.md               # Version history
 └── README.md                  # This file
 ```
 
@@ -193,8 +235,10 @@ CodexSignInManager/
 | `firebase-config.js` | Initializes Firebase using your keys from `firebase-env.js`. Exports `auth`, `db`, and Firestore helpers for use by the app. |
 | `firebase-env.js` | **You create this file.** Contains your private Firebase API keys. Never committed to Git. |
 | `firebase-env.example.js` | A template showing the exact format for `firebase-env.js`. Copy and fill in your keys. |
+| `firestore.rules` | Ready-to-use Firestore security rules. Copy to Firebase Console to lock down your database. |
 | `sw.js` | Service Worker that caches the app shell for offline access (PWA support). |
 | `manifest.json` | Allows "Add to Home Screen" on mobile devices for an app-like experience. |
+| `setup.bat` / `setup.sh` | One-click setup scripts that create `firebase-env.js` from the template. |
 
 ## 📱 Mobile Access
 
