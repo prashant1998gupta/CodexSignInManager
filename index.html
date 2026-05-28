@@ -35,8 +35,10 @@
       --accent-amber: #ffb347;
       --accent-amber-dim: rgba(255, 179, 71, 0.15);
       --accent-amber-glow: rgba(255, 179, 71, 0.3);
+      --accent-amber-glow: rgba(255, 179, 71, 0.3);
       --accent-blue: #4d94ff;
       --accent-blue-dim: rgba(77, 148, 255, 0.15);
+      --accent-blue-glow: rgba(77, 148, 255, 0.3);
       --accent-purple: #a855f7;
       --radius-sm: 8px;
       --radius-md: 14px;
@@ -46,6 +48,7 @@
       --shadow-glow-green: 0 0 20px var(--accent-green-glow), 0 0 60px rgba(0, 230, 138, 0.1);
       --shadow-glow-red: 0 0 20px var(--accent-red-glow), 0 0 60px rgba(255, 77, 106, 0.1);
       --shadow-glow-amber: 0 0 20px var(--accent-amber-glow), 0 0 60px rgba(255, 179, 71, 0.1);
+      --shadow-glow-blue: 0 0 20px var(--accent-blue-glow), 0 0 60px rgba(77, 148, 255, 0.1);
       --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       --transition-med: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
       --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
@@ -239,10 +242,11 @@
       font-size: 1.3rem;
       flex-shrink: 0;
     }
-    .stat-icon.total { background: var(--accent-blue-dim); }
-    .stat-icon.available { background: var(--accent-green-dim); }
-    .stat-icon.exhausted { background: var(--accent-red-dim); }
-    .stat-icon.resetting { background: var(--accent-amber-dim); }
+    .stat-icon.total { background: var(--accent-purple); color: white; opacity: 0.85; }
+    .stat-icon.available { background: var(--accent-green-dim); color: var(--accent-green); }
+    .stat-icon.in_use { background: var(--accent-blue-dim); color: var(--accent-blue); }
+    .stat-icon.exhausted { background: var(--accent-red-dim); color: var(--accent-red); }
+    .stat-icon.resetting { background: var(--accent-amber-dim); color: var(--accent-amber); }
     .stat-value {
       font-size: 1.6rem;
       font-weight: 700;
@@ -335,6 +339,11 @@
       border-color: var(--accent-red);
       color: var(--accent-red);
     }
+    .chip.active[data-filter="in_use"] {
+      background: var(--accent-blue-dim);
+      border-color: var(--accent-blue);
+      color: var(--accent-blue);
+    }
     .chip.active[data-filter="resetting"] {
       background: var(--accent-amber-dim);
       border-color: var(--accent-amber);
@@ -382,6 +391,13 @@
     .account-card.status-exhausted:hover {
       border-color: rgba(255, 77, 106, 0.4);
     }
+    .account-card.status-in_use {
+      border-color: rgba(77, 148, 255, 0.2);
+      box-shadow: var(--shadow-glow-blue);
+    }
+    .account-card.status-in_use:hover {
+      border-color: rgba(77, 148, 255, 0.4);
+    }
     .account-card.status-resetting {
       border-color: rgba(255, 179, 71, 0.25);
       box-shadow: var(--shadow-glow-amber);
@@ -406,6 +422,9 @@
     }
     .account-card.status-exhausted::before {
       background: linear-gradient(90deg, transparent, var(--accent-red), transparent);
+    }
+    .account-card.status-in_use::before {
+      background: linear-gradient(90deg, transparent, var(--accent-blue), transparent);
     }
     .account-card.status-resetting::before {
       background: linear-gradient(90deg, transparent, var(--accent-amber), transparent);
@@ -457,6 +476,10 @@
       background: var(--accent-red-dim);
       color: var(--accent-red);
     }
+    .card-status-badge.in_use {
+      background: var(--accent-blue-dim);
+      color: var(--accent-blue);
+    }
     .card-status-badge.resetting {
       background: var(--accent-amber-dim);
       color: var(--accent-amber);
@@ -468,6 +491,7 @@
     }
     .status-dot.available { background: var(--accent-green); box-shadow: 0 0 6px var(--accent-green); }
     .status-dot.exhausted { background: var(--accent-red); box-shadow: 0 0 6px var(--accent-red); }
+    .status-dot.in_use { background: var(--accent-blue); box-shadow: 0 0 6px var(--accent-blue); }
     .status-dot.resetting { background: var(--accent-amber); box-shadow: 0 0 6px var(--accent-amber); }
 
     /* Reset Info Block (Codex-style) */
@@ -567,6 +591,20 @@
     }
     .card-reset-info.available-info .reset-pct {
       color: var(--accent-green);
+    }
+    /* In Use usage info (blue variant) */
+    .card-reset-info.in-use-info {
+      border-color: rgba(77, 148, 255, 0.15);
+      background: rgba(77, 148, 255, 0.04);
+    }
+    .card-reset-info.in-use-info .reset-usage-text {
+      color: var(--accent-blue);
+    }
+    .card-reset-info.in-use-info .reset-progress-bar {
+      background: var(--accent-blue);
+    }
+    .card-reset-info.in-use-info .reset-pct {
+      color: var(--accent-blue);
     }
 
     .card-notes {
@@ -961,61 +999,67 @@
       </div>
       <div class="header-actions">
         <button class="btn" id="btn-import" title="Import accounts from JSON">
-          <span class="icon">📥</span> Import
-        </button>
-        <button class="btn" id="btn-export" title="Export accounts to JSON">
-          <span class="icon">📤</span> Export
-        </button>
-        <button class="btn btn-primary" id="btn-add-account">
+        <button class="btn btn-primary" onclick="openAddModal()">
           <span class="icon">＋</span> Add Account
         </button>
-        <button class="btn btn-danger" id="btn-logout" title="Sign Out" style="display:none;">
-          <span class="icon">🚪</span> Sign Out
-        </button>
+        <button class="btn" onclick="exportData()" title="Backup Accounts">📤 Export</button>
+        <label class="btn" style="cursor:pointer;" title="Restore Accounts">
+          📥 Import
+          <input type="file" id="import-file" accept=".json" style="display:none;" onchange="importData(event)">
+        </label>
+        <button class="btn" id="btn-logout" onclick="signOutUser()" style="display:none;" title="Sign Out">🔓 Sign Out</button>
       </div>
     </header>
 
-    <!-- Stats Bar -->
+    <!-- STATS -->
     <div class="stats-bar" id="stats-bar">
-      <div class="stat-card">
+      <div class="stat-card" data-filter="all" style="cursor:pointer;">
         <div class="stat-icon total">📊</div>
         <div>
           <div class="stat-value" id="stat-total">0</div>
-          <div class="stat-label">Total</div>
+          <div class="stat-label">Total Accounts</div>
         </div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" data-filter="available" style="cursor:pointer;">
         <div class="stat-icon available">✅</div>
         <div>
           <div class="stat-value" id="stat-available">0</div>
           <div class="stat-label">Available</div>
         </div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" data-filter="in_use" style="cursor:pointer;">
+        <div class="stat-icon in_use">🔵</div>
+        <div>
+          <div class="stat-value" id="stat-inuse">0</div>
+          <div class="stat-label">In Use</div>
+        </div>
+      </div>
+      <div class="stat-card" data-filter="exhausted" style="cursor:pointer;">
         <div class="stat-icon exhausted">🚫</div>
         <div>
           <div class="stat-value" id="stat-exhausted">0</div>
           <div class="stat-label">Exhausted</div>
         </div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" data-filter="resetting" style="cursor:pointer;">
         <div class="stat-icon resetting">⏳</div>
         <div>
           <div class="stat-value" id="stat-resetting">0</div>
-          <div class="stat-label">Resets &lt; 24h</div>
+          <div class="stat-label">Resetting < 24h</div>
         </div>
       </div>
     </div>
 
-    <!-- Toolbar: Search & Filter -->
+    <!-- TOOLBAR (Search & Filters) -->
     <div class="toolbar">
       <div class="search-box">
         <span class="search-icon">🔍</span>
-        <input type="text" id="search-input" placeholder="Search by email, label, or notes..." autocomplete="off">
+        <input type="text" id="search-input" placeholder="Search by email, label, or notes..." onkeyup="renderCards()">
       </div>
       <div class="filter-chips">
         <button class="chip active" data-filter="all">All</button>
         <button class="chip" data-filter="available">Available</button>
+        <button class="chip" data-filter="in_use">In Use</button>
         <button class="chip" data-filter="exhausted">Exhausted</button>
         <button class="chip" data-filter="resetting">Resetting Soon</button>
       </div>
@@ -1057,6 +1101,7 @@
             <label for="account-status">Current Status</label>
             <select id="account-status" onchange="toggleResetDateField()">
               <option value="available">✅ Available</option>
+              <option value="in_use">🔵 In Use</option>
               <option value="exhausted">🚫 Exhausted</option>
             </select>
           </div>
@@ -1307,6 +1352,30 @@
     const STORAGE_KEY = 'codex_accounts';
     let accounts = [];
     let currentFilter = 'all';
+
+    document.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', (e) => {
+        document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+        e.target.classList.add('active');
+        currentFilter = e.target.dataset.filter;
+        renderCards();
+      });
+    });
+    document.querySelectorAll('.stat-card').forEach(card => {
+      card.addEventListener('click', (e) => {
+        const filter = card.dataset.filter;
+        document.querySelectorAll('.chip').forEach(c => {
+          if (c.dataset.filter === filter) {
+            c.classList.add('active');
+          } else {
+            c.classList.remove('active');
+          }
+        });
+        currentFilter = filter;
+        renderCards();
+      });
+    });
+
     let currentSearch = '';
     let editingLogAccountId = null;
     let timerInterval = null;
@@ -1453,8 +1522,12 @@
     }
 
     function getDisplayStatus(acc) {
+      if (acc.status === 'in_use') return 'in_use';
       if (acc.status === 'available') return 'available';
-      if (isResettingSoon(acc)) return 'resetting';
+      const remainingMs = getResetTimeRemaining(acc);
+      if (remainingMs !== null && remainingMs > 0 && remainingMs <= 24 * 60 * 60 * 1000) {
+        return 'resetting';
+      }
       return 'exhausted';
     }
 
@@ -1495,17 +1568,19 @@
       // Filter
       if (currentFilter === 'available') {
         filtered = filtered.filter(a => a.status === 'available');
+      } else if (currentFilter === 'in_use') {
+        filtered = filtered.filter(a => a.status === 'in_use');
       } else if (currentFilter === 'exhausted') {
         filtered = filtered.filter(a => a.status === 'exhausted' && !isResettingSoon(a));
       } else if (currentFilter === 'resetting') {
-        filtered = filtered.filter(a => isResettingSoon(a));
+        filtered = filtered.filter(a => getDisplayStatus(a) === 'resetting');
       }
 
-      // Sort: available first, then by reset time (soonest first), then alphabetical
+      // Sort: available/in-use first, then by reset time (soonest first), then alphabetical
       filtered.sort((a, b) => {
         const sa = getDisplayStatus(a);
         const sb = getDisplayStatus(b);
-        const order = { available: 0, resetting: 1, exhausted: 2 };
+        const order = { available: 0, in_use: 1, resetting: 2, exhausted: 3 };
         if (order[sa] !== order[sb]) return order[sa] - order[sb];
         if (sa === 'resetting' || sa === 'exhausted') {
           const ra = getResetTimeRemaining(a) || Infinity;
@@ -1522,12 +1597,14 @@
     function renderStats() {
       const total = accounts.length;
       const available = accounts.filter(a => a.status === 'available').length;
-      const exhausted = accounts.filter(a => a.status === 'exhausted').length;
-      const resetting = accounts.filter(a => isResettingSoon(a)).length;
+      const inUse = accounts.filter(a => a.status === 'in_use').length;
+      const exhaustedCount = accounts.filter(a => a.status === 'exhausted').length;
+      const resetting = accounts.filter(a => getDisplayStatus(a) === 'resetting').length;
 
       document.getElementById('stat-total').textContent = total;
       document.getElementById('stat-available').textContent = available;
-      document.getElementById('stat-exhausted').textContent = exhausted;
+      document.getElementById('stat-inuse').textContent = inUse;
+      document.getElementById('stat-exhausted').textContent = exhaustedCount;
       document.getElementById('stat-resetting').textContent = resetting;
     }
 
@@ -1588,11 +1665,14 @@
               </div>
             </div>
           `;
-        } else if (acc.status === 'available') {
+            </div>
+          `;
+        } else if (acc.status === 'available' || acc.status === 'in_use') {
           const usagePct = acc.usagePercent !== undefined ? acc.usagePercent : 100;
           const availResetDate = acc.nextResetDate ? new Date(acc.nextResetDate) : null;
+          const infoClass = acc.status === 'in_use' ? 'in-use-info' : 'available-info';
           infoBlockHtml = `
-            <div class="card-reset-info available-info">
+            <div class="card-reset-info ${infoClass}">
               <div class="reset-usage-row">
                 <span class="reset-usage-text">${usagePct}% usage remaining</span>
               </div>
@@ -1609,8 +1689,32 @@
           `;
         }
 
-        const toggleLabel = acc.status === 'available' ? '🚫 Mark Exhausted' : '✅ Mark Available';
-        const toggleClass = acc.status === 'available' ? 'btn-danger' : '';
+        let actionsHtml = '';
+        if (acc.status === 'available') {
+          actionsHtml = `
+            <button class="btn btn-sm" onclick="setStatus('${acc.id}', 'in_use')" style="background:var(--accent-blue-dim); color:var(--accent-blue); border-color:var(--accent-blue);">
+              ▶️ Mark In Use
+            </button>
+            <button class="btn btn-sm btn-danger" onclick="openExhaustModal('${acc.id}')">
+              🚫 Exhausted
+            </button>
+          `;
+        } else if (acc.status === 'in_use') {
+          actionsHtml = `
+            <button class="btn btn-sm" onclick="setStatus('${acc.id}', 'available')" style="background:var(--accent-green-dim); color:var(--accent-green); border-color:var(--accent-green);">
+              ✅ Release
+            </button>
+            <button class="btn btn-sm btn-danger" onclick="openExhaustModal('${acc.id}')">
+              🚫 Exhausted
+            </button>
+          `;
+        } else if (acc.status === 'exhausted') {
+          actionsHtml = `
+            <button class="btn btn-sm" onclick="setStatus('${acc.id}', 'available')">
+              ✅ Mark Available
+            </button>
+          `;
+        }
 
         return `
           <div class="account-card status-${ds}" style="animation-delay: ${idx * 0.06}s" data-id="${acc.id}">
@@ -1621,15 +1725,15 @@
               </div>
               <span class="card-status-badge ${ds}">
                 <span class="status-dot ${ds}"></span>
-                ${ds === 'available' ? 'Available' : ds === 'resetting' ? 'Resetting' : 'Exhausted'}
+                ${ds === 'available' ? 'Available' : ds === 'in_use' ? 'In Use' : ds === 'resetting' ? 'Resetting' : 'Exhausted'}
               </span>
             </div>
             ${infoBlockHtml}
             ${acc.notes ? `<div class="card-notes">${escapeHtml(acc.notes)}</div>` : ''}
-            <div class="card-actions">
-              <button class="btn btn-sm ${toggleClass}" onclick="toggleStatus('${acc.id}')">
-                ${toggleLabel}
-              </button>
+            <div class="card-actions" style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+              ${actionsHtml}
+            </div>
+            <div class="card-actions" style="margin-top:8px; border-top:none; padding-top:0;">
               <button class="btn btn-sm" onclick="copyToClipboard('${acc.email}')" title="Copy Email">📋</button>
               <button class="btn btn-sm" onclick="openEditModal('${acc.id}')" title="Edit">✏️</button>
               <button class="btn btn-sm" onclick="openLogModal('${acc.id}')" title="Usage Log">🕒</button>
@@ -1702,25 +1806,36 @@
     }
 
     // ===== ACTIONS =====
+    function setStatus(id, newStatus) {
+      const acc = accounts.find(a => a.id === id);
+      if (!acc) return;
+
+      acc.status = newStatus;
+      if (newStatus === 'available' || newStatus === 'in_use') {
+        acc.limitExhaustedAt = null;
+        acc.resetAt = null;
+      }
+
+      acc.usageLog.push({
+        timestamp: new Date().toISOString(),
+        action: newStatus,
+        note: `Marked as ${newStatus.replace('_', ' ')}`
+      });
+
+      showToast(`Account marked as ${newStatus.replace('_', ' ')}`, 'success');
+      saveAccounts();
+      renderAll();
+    }
+
     function toggleStatus(id) {
       const acc = accounts.find(a => a.id === id);
       if (!acc) return;
 
-      if (acc.status === 'available') {
+      if (acc.status === 'available' || acc.status === 'in_use') {
         // Open the exhaust modal to ask for reset date
         openExhaustModal(id);
       } else {
-        acc.status = 'available';
-        acc.limitExhaustedAt = null;
-        acc.resetAt = null;
-        acc.usageLog.push({
-          timestamp: new Date().toISOString(),
-          action: 'available',
-          note: 'Manually marked as available'
-        });
-        showToast('Account marked as available!', 'success');
-        saveAccounts();
-        renderAll();
+        setStatus(id, 'available');
       }
     }
 
