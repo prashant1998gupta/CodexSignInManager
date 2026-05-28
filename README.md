@@ -3,11 +3,15 @@
 # ⚡ Codex Sign-In Manager
 **A Beautiful Dashboard to Track & Manage Multiple OpenAI Codex Free Accounts.**
 
+[![Live Demo](https://img.shields.io/badge/🔗_Live_Demo-codexsigninmanager.firebaseapp.com-00e68a?style=for-the-badge)](https://codexsigninmanager.firebaseapp.com/)
 [![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)]()
 [![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)]()
 [![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)]()
 [![OpenAI](https://img.shields.io/badge/OpenAI_Codex-412991?style=for-the-badge&logo=openai&logoColor=white)]()
+[![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)]()
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/logic_builder)
+
+### 🌐 [Try the Live Demo →](https://codexsigninmanager.firebaseapp.com/)
 
 ---
 
@@ -17,7 +21,9 @@
 
 Codex Sign-In Manager is a **single-file web dashboard** that helps you track and manage multiple OpenAI Codex free tier accounts. Free accounts have usage limits that reset weekly — when you have 10-20 accounts, it's impossible to remember which ones are available. This tool solves that problem with a beautiful, real-time dashboard.
 
-**No server. No dependencies. No setup.** Just open `index.html` in your browser and start managing.
+> **🌐 Live Demo:** [codexsigninmanager.firebaseapp.com](https://codexsigninmanager.firebaseapp.com/) — Try it instantly, no setup needed!
+
+**No server. No build tools. No dependencies.** Just clone, add your Firebase keys, and open `index.html` in your browser.
 
 ## 💡 Why Do You Need This? (Use Cases)
 
@@ -103,16 +109,45 @@ Since this app uses a cloud database to sync your accounts across devices, you n
 3. **Sign In** — Click the "Sign in with Google" button.
 4. **Start adding accounts** — Click the "＋ Add Account" button and enter your Codex email.
 
-### Hosting Online (Optional)
+### 🌐 Hosting Online (Firebase Hosting)
 
-Since this is a static web app, you can host it online using **Firebase Hosting** so you can access it from anywhere:
+Since this is a static web app, you can host it online using **Firebase Hosting** so you can access it from any device, anywhere:
 
-1. Install Firebase CLI: `npm install -g firebase-tools`
-2. Log in: `firebase login`
-3. Initialize hosting (if not already done): `firebase init hosting`
-4. Deploy: `firebase deploy --only hosting`
+#### Step 1: Install Firebase CLI
+```bash
+npm install -g firebase-tools
+```
 
-*(Note: Ensure you add your new hosting URL to **Authorized domains** in the Firebase Authentication settings!)*
+#### Step 2: Login to Firebase
+```bash
+firebase login
+```
+A browser window will open — sign in with the same Google account you used to create the Firebase project.
+
+#### Step 3: Deploy
+Make sure you are in the project directory (where `firebase.json` exists), then run:
+```bash
+firebase deploy --only hosting
+```
+
+After deployment, you'll get two URLs:
+- `https://<your-project-id>.web.app`
+- `https://<your-project-id>.firebaseapp.com`
+
+> **⚠️ Important: Use the `.firebaseapp.com` URL for the best mobile compatibility.**
+> Mobile browsers (Safari, Chrome on iOS/Android) have strict anti-tracking policies that can block login on `.web.app` because the `authDomain` in your Firebase config defaults to `.firebaseapp.com`. Using the matching domain avoids this issue entirely.
+
+#### Step 4: Authorize Your Domain
+1. Go to **Firebase Console → Authentication → Settings → Authorized domains**.
+2. Ensure your hosting URL (e.g. `your-project-id.firebaseapp.com`) is listed.
+3. If not, click **Add domain** and add it.
+
+#### Redeploying After Changes
+Every time you make changes to the code, just run:
+```bash
+firebase deploy --only hosting
+```
+Your live site will be updated within seconds.
 
 ### Usage
 
@@ -139,12 +174,45 @@ Since this is a static web app, you can host it online using **Firebase Hosting*
 ```text
 CodexSignInManager/
 ├── index.html                 # Complete dashboard (HTML + CSS + JS in one file)
-├── firebase-config.js         # Firebase initialization logic
-├── firebase-env.example.js    # Template for your Firebase keys
-├── firebase-env.js            # Your actual keys (created by you, gitignored)
+├── firebase-config.js         # Firebase SDK initialization & exports
+├── firebase-env.example.js    # Template — copy this to firebase-env.js
+├── firebase-env.js            # 🔒 Your actual Firebase keys (gitignored)
 ├── firebase.json              # Firebase Hosting configuration
+├── .firebaserc                # Links project to your Firebase project ID
+├── manifest.json              # PWA manifest (name, icons, theme color)
+├── sw.js                      # Service Worker for offline caching
+├── .gitignore                 # Ignores firebase-env.js, .firebase/, etc.
 └── README.md                  # This file
 ```
+
+### Key Files Explained
+
+| File | What It Does |
+|---|---|
+| `index.html` | The entire app — HTML structure, CSS styling, and all JavaScript logic in one self-contained file. |
+| `firebase-config.js` | Initializes Firebase using your keys from `firebase-env.js`. Exports `auth`, `db`, and Firestore helpers for use by the app. |
+| `firebase-env.js` | **You create this file.** Contains your private Firebase API keys. Never committed to Git. |
+| `firebase-env.example.js` | A template showing the exact format for `firebase-env.js`. Copy and fill in your keys. |
+| `sw.js` | Service Worker that caches the app shell for offline access (PWA support). |
+| `manifest.json` | Allows "Add to Home Screen" on mobile devices for an app-like experience. |
+
+## 📱 Mobile Access
+
+This app is a **Progressive Web App (PWA)**, which means you can install it on your phone's home screen for a native app-like experience:
+
+1. Open `https://<your-project-id>.firebaseapp.com` in **Chrome** (Android) or **Safari** (iOS).
+2. Tap the browser menu (three dots on Android, share icon on iOS).
+3. Tap **"Add to Home Screen"** or **"Install App"**.
+4. The app will appear on your home screen with its own icon!
+
+> **💡 Tip:** Always open the app from your **real browser** (Chrome/Safari), not from inside messaging apps like WhatsApp, Telegram, or Instagram. In-app browsers often block Google Sign-In.
+
+## 🔒 Security Notes
+
+- Your Firebase API keys are stored in `firebase-env.js`, which is **gitignored** and never uploaded to GitHub.
+- Authentication is handled entirely by Firebase/Google — no passwords are stored anywhere.
+- Firestore security rules should be set so only authenticated users can read/write their own data.
+- Each user's data is stored under their unique Firebase UID, so no one can see another user's accounts.
 
 ## 🤝 Contributing
 
